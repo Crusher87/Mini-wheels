@@ -1,0 +1,125 @@
+.player-marker {
+  --marker-accent: #fff;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  min-width: 2.8rem;
+  padding: 0.22rem 0.4rem 0.25rem;
+  color: #fff;
+  font-weight: 900;
+  font-size: clamp(0.72rem, 1.25vw, 1rem);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  background: rgb(5 10 18 / 88%);
+  border: 2px solid #fff;
+  border-radius: 999px;
+  box-shadow:
+    0 0 0 2px #050a12,
+    0 2px 7px rgb(0 0 0 / 55%);
+  text-shadow:
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    1px 1px 0 #000;
+  transform-origin: 50% 100%;
+  pointer-events: none;
+  user-select: none;
+  will-change: transform;
+  contain: layout style paint;
+}
+
+.player-marker[hidden] {
+  display: none;
+}
+
+.player-marker::after {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 0.46rem;
+  height: 0.46rem;
+  content: "";
+  background: #050a12;
+  border-right: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: translate(-50%, -37%) rotate(45deg);
+}
+
+.player-marker__symbol {
+  position: relative;
+  z-index: 1;
+  display: inline-grid;
+  width: 1.15em;
+  height: 1.15em;
+  place-items: center;
+  color: var(--marker-accent);
+  font-size: 1.08em;
+  line-height: 1;
+  -webkit-text-stroke: 1px #000;
+  paint-order: stroke fill;
+}
+
+.player-marker__label {
+  position: relative;
+  z-index: 1;
+}
+
+.player-marker[data-player="1"] {
+  --marker-accent: #ff3b3b;
+}
+
+.player-marker[data-player="2"] {
+  --marker-accent: #ff9d3b;
+}
+
+.player-marker[data-player="3"] {
+  --marker-accent: #ffff3b;
+}
+
+.player-marker[data-player="4"] {
+  --marker-accent: #a46bff;
+}
+
+.player-marker[data-player="5"] {
+  --marker-accent: #45ff66;
+}
+
+.player-marker[data-player="6"] {
+  --marker-accent: #45ffff;
+}
+
+.player-marker[data-player="7"] {
+  --marker-accent: #668cff;
+}
+
+.player-marker[data-player="8"] {
+  --marker-accent: #ff63ff;
+}
+
+.player-marker[data-player="9"] {
+  --marker-accent: #e1e1e1;
+}
+
+.player-marker[data-player="10"] {
+  --marker-accent: #111;
+}
+
+@media (prefers-contrast: more) {
+  .player-marker {
+    background: #000;
+    border-width: 3px;
+    box-shadow: 0 0 0 2px #000;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player-marker {
+    will-change: auto;
+  }
+}

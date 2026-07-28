@@ -1,0 +1,19 @@
+Tiny Traction third-party notices
+
+This production distribution includes the following direct runtime packages:
+
+three 0.185.1
+License: MIT
+Project: https://threejs.org/
+Source: https://github.com/mrdoob/three.js
+License text: ./licenses/three-MIT.txt
+
+@dimforge/rapier3d 0.19.3
+License: Apache License 2.0
+Project: https://rapier.rs/
+Source: https://github.com/dimforge/rapier.js
+License text: ./licenses/rapier-Apache-2.0.txt
+
+The license files above are verbatim copies of the texts distributed with the
+installed package versions. This runtime notice is not a legal review of the
+development toolchain or its transitive dependencies.

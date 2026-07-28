@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+blob-report/
+.vite/
+*.log
+Mini_Wheels_ThreeJS_Reconstruction_Package/
+Mini_Wheels_ThreeJS_Reconstruction_Package.zip
+.DS_Store
+Thumbs.db

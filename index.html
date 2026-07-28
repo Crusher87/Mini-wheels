@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#a5b3c4" />
+    <meta
+      name="description"
+      content="Tiny Traction, a clean-room local multiplayer physics sandbox."
+    />
+    <title>Tiny Traction — Physics Sandbox</title>
+  </head>
+  <body>
+    <main
+      id="game-root"
+      class="game-root"
+      tabindex="-1"
+      aria-label="Tiny Traction local multiplayer physics sandbox"
+    >
+      <canvas id="game-canvas" aria-label="3D physics sandbox"></canvas>
+      <div id="player-markers" class="player-markers" aria-hidden="true"></div>
+
+      <div id="ui-layer" class="ui-layer">
+        <section id="screen-loading" class="screen screen--centered" aria-live="polite">
+          <div class="boot-card">
+            <span class="eyebrow">SYSTEM CHECK</span>
+            <h1>TINY<br /><span>TRACTION</span></h1>
+            <div class="loading-track" aria-hidden="true"><i></i></div>
+            <p id="loading-status">Preparing renderer and physics…</p>
+          </div>
+        </section>
+
+        <section id="screen-activation" class="screen screen--centered" hidden>
+          <div class="activation-card">
+            <span class="eyebrow">LOCAL PHYSICS LAB</span>
+            <h1>TINY<br /><span>TRACTION</span></h1>
+            <p>One screen. Ten tiny cars. A whole lot of momentum.</p>
+            <button id="activate-button" class="button button--primary button--wide" type="button">
+              <span>START ENGINE</span>
+              <kbd>ENTER</kbd>
+            </button>
+            <small>Click, press Enter, or use a controller button</small>
+          </div>
+        </section>
+
+        <section id="screen-main" class="screen screen--menu" hidden>
+          <header class="brand-lockup">
+            <span class="eyebrow">ALPHA SANDBOX / WEB BUILD</span>
+            <h1>TINY<br /><span>TRACTION</span></h1>
+            <p>LOCAL PHYSICS FOR 1–10 PLAYERS</p>
+          </header>
+          <nav class="menu-stack" aria-label="Main menu">
+            <button class="button button--primary" type="button" data-screen-target="modes">
+              <span>PLAY</span><span aria-hidden="true">→</span>
+            </button>
+            <button class="button" type="button" data-screen-target="players">
+              <span>PLAYERS</span><span id="menu-player-count">01</span>
+            </button>
+            <button class="button" type="button" data-screen-target="options">
+              <span>OPTIONS</span><span aria-hidden="true">◆</span>
+            </button>
+            <button id="fullscreen-button" class="button button--quiet" type="button">
+              <span>ENTER FULLSCREEN</span><span aria-hidden="true">↗</span>
+            </button>
+          </nav>
+          <footer class="menu-footer">
+            <span>WASD / GAMEPAD</span>
+            <span id="build-label">PROFILE A · WEB 0.1.0</span>
+          </footer>
+        </section>
+
+        <section
+          id="screen-modes"
+          class="screen screen--panel"
+          aria-labelledby="modes-heading"
+          hidden
+        >
+          <header class="panel-heading">
+            <div>
+              <span class="eyebrow">CHOOSE A LAB</span>
+              <h2 id="modes-heading">GAME MODES</h2>
+            </div>
+            <button class="icon-button" type="button" data-screen-target="main" aria-label="Back">
+              ←
+            </button>
+          </header>
+          <div class="mode-grid">
+            <button id="play-sandbox-button" class="mode-card mode-card--active" type="button">
+              <span class="mode-card__index">01</span>
+              <span class="mode-card__art" aria-hidden="true"><i></i><i></i><i></i></span>
+              <strong>SANDBOX</strong>
+              <small>1–10 PLAYERS · PHYSICS TOYBOX</small>
+              <b>READY →</b>
+            </button>
+            <button id="mode-infected" class="mode-card mode-card--disabled" type="button" disabled>
+              <span class="mode-card__index">02</span>
+              <strong>INFECTED</strong>
+              <small>1–10 PLAYERS</small>
+              <b>COMING SOON</b>
+            </button>
+            <button id="mode-iceage" class="mode-card mode-card--disabled" type="button" disabled>
+              <span class="mode-card__index">03</span>
+              <strong>ICEAGE</strong>
+              <small>MAP TEST · UNSHIPPED</small>
+              <b>UNAVAILABLE</b>
+            </button>
+            <button
+              id="mode-icediamonds"
+              class="mode-card mode-card--disabled"
+              type="button"
+              disabled
+            >
+              <span class="mode-card__index">04</span>
+              <strong>ICEDIAMONDS</strong>
+              <small>MAP TEST · UNSHIPPED</small>
+              <b>UNAVAILABLE</b>
+            </button>
+            <button
+              id="mode-stonehedge"
+              class="mode-card mode-card--disabled"
+              type="button"
+              disabled
+            >
+              <span class="mode-card__index">05</span>
+              <strong>STONEHEDGE</strong>
+              <small>MAP TEST · UNSHIPPED</small>
+              <b>UNAVAILABLE</b>
+            </button>
+          </div>
+        </section>
+
+        <section
+          id="screen-players"
+          class="screen screen--panel"
+          aria-labelledby="players-heading"
+          hidden
+        >
+          <header class="panel-heading">
+            <div>
+              <span class="eyebrow">LOCAL ROSTER</span>
+              <h2 id="players-heading">PLAYERS</h2>
+            </div>
+            <button class="icon-button" type="button" data-screen-target="main" aria-label="Back">
+              ←
+            </button>
+          </header>
+          <div class="settings-layout">
+            <div class="setting-card setting-card--hero">
+              <label for="player-count">ACTIVE PLAYERS</label>
+              <output id="player-count-output" for="player-count">1</output>
+              <input id="player-count" type="range" min="1" max="10" step="1" value="1" />
+              <div class="range-labels"><span>SOLO</span><span>10 PLAYER CHAOS</span></div>
+            </div>
+            <div class="setting-card setting-card--editor">
+              <div class="player-editor-heading">
+                <label for="controls-player">
+                  <span class="setting-card__label">CONTROLS FOR PLAYER</span>
+                  <select id="controls-player">
+                    <option value="0">P1</option>
+                    <option value="1">P2</option>
+                    <option value="2">P3</option>
+                    <option value="3">P4</option>
+                    <option value="4">P5</option>
+                    <option value="5">P6</option>
+                    <option value="6">P7</option>
+                    <option value="7">P8</option>
+                    <option value="8">P9</option>
+                    <option value="9">P10</option>
+                  </select>
+                </label>
+                <span id="player-color-chip" class="player-color-chip" aria-hidden="true"></span>
+              </div>
+
+              <label class="editor-field" for="input-type">
+                <span>INPUT SOURCE</span>
+                <select id="input-type">
+                  <option value="keyboard">Keyboard</option>
+                  <option value="controller">Controller</option>
+                </select>
+              </label>
+
+              <div id="keyboard-settings">
+                <p class="setting-card__label">DIRECTION BINDINGS</p>
+                <div class="binding-grid">
+                  <button class="binding-button" type="button" data-binding-direction="up">
+                    <small>UP</small><strong id="binding-up">KeyW</strong>
+                  </button>
+                  <button class="binding-button" type="button" data-binding-direction="down">
+                    <small>DOWN</small><strong id="binding-down">KeyS</strong>
+                  </button>
+                  <button class="binding-button" type="button" data-binding-direction="left">
+                    <small>LEFT</small><strong id="binding-left">KeyA</strong>
+                  </button>
+                  <button class="binding-button" type="button" data-binding-direction="right">
+                    <small>RIGHT</small><strong id="binding-right">KeyD</strong>
+                  </button>
+                </div>
+              </div>
+
+              <div id="controller-settings" hidden>
+                <label class="editor-field" for="controller-select">
+                  <span>ASSIGNED CONTROLLER</span>
+                  <select id="controller-select">
+                    <option value="">No controller connected</option>
+                  </select>
+                </label>
+                <small id="controller-status">
+                  Controllers become visible after the first trusted interaction.
+                </small>
+                <fieldset id="controller-calibration" class="controller-calibration" hidden>
+                  <legend>NON-STANDARD AXIS CALIBRATION</legend>
+                  <div class="calibration-grid">
+                    <label for="horizontal-axis">
+                      <span>STEERING AXIS</span>
+                      <select id="horizontal-axis"></select>
+                    </label>
+                    <label for="vertical-axis">
+                      <span>DRIVE AXIS</span>
+                      <select id="vertical-axis"></select>
+                    </label>
+                  </div>
+                  <div class="calibration-flips">
+                    <label>
+                      <input id="invert-horizontal" type="checkbox" />
+                      <span>INVERT STEERING</span>
+                    </label>
+                    <label>
+                      <input id="invert-vertical" type="checkbox" checked />
+                      <span>INVERT DRIVE</span>
+                    </label>
+                  </div>
+                  <button id="save-calibration-button" class="button button--small" type="button">
+                    SAVE CALIBRATION
+                  </button>
+                  <small>Move the stick and choose the two changing axes before saving.</small>
+                </fieldset>
+              </div>
+
+              <p id="binding-warning" class="config-warning" role="status" hidden></p>
+            </div>
+          </div>
+        </section>
+
+        <section
+          id="screen-options"
+          class="screen screen--panel"
+          aria-labelledby="options-heading"
+          hidden
+        >
+          <header class="panel-heading">
+            <div>
+              <span class="eyebrow">BROWSER BUILD</span>
+              <h2 id="options-heading">OPTIONS</h2>
+            </div>
+            <button class="icon-button" type="button" data-screen-target="main" aria-label="Back">
+              ←
+            </button>
+          </header>
+          <form id="options-form" class="options-form">
+            <fieldset class="option-group">
+              <legend>DISPLAY &amp; GRAPHICS</legend>
+              <div class="options-grid">
+                <label class="option-row">
+                  <span><strong>RENDER SCALE</strong><small>Internal resolution</small></span>
+                  <select id="render-scale" name="renderScale">
+                    <option value="0.5">50%</option>
+                    <option value="0.75">75%</option>
+                    <option value="1" selected>100%</option>
+                    <option value="1.25">125%</option>
+                  </select>
+                </label>
+                <label class="option-row">
+                  <span><strong>ANTI-ALIASING</strong><small>Edge quality</small></span>
+                  <select id="aa-quality" name="aaQuality">
+                    <option value="off">Off</option>
+                    <option value="fxaa">FXAA</option>
+                    <option value="smaa" selected>SMAA</option>
+                    <option value="high">High</option>
+                  </select>
+                </label>
+                <label class="option-row">
+                  <span><strong>SHADOWS</strong><small>Map resolution</small></span>
+                  <select id="shadow-quality" name="shadowQuality">
+                    <option value="low">Low</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </label>
+                <label class="option-row option-row--toggle">
+                  <span><strong>AMBIENT OCCLUSION</strong><small>Contact depth</small></span>
+                  <input id="ambient-occlusion" name="ambientOcclusion" type="checkbox" checked />
+                </label>
+                <label class="option-row option-row--toggle">
+                  <span><strong>VIGNETTE</strong><small>Edge shading</small></span>
+                  <input id="vignette" name="vignette" type="checkbox" checked />
+                </label>
+                <label class="option-row option-row--toggle">
+                  <span>
+                    <strong>FULLSCREEN PREFERENCE</strong>
+                    <small id="fullscreen-preference-summary">
+                      Remember a fullscreen reminder; browser permission is still required
+                    </small>
+                  </span>
+                  <input id="fullscreen-preference" name="fullscreenPreference" type="checkbox" />
+                </label>
+              </div>
+              <div class="option-group__actions">
+                <button
+                  id="options-fullscreen-button"
+                  class="button button--quiet"
+                  type="button"
+                  aria-pressed="false"
+                >
+                  <span>ENTER FULLSCREEN</span><span aria-hidden="true">↗</span>
+                </button>
+                <output id="fullscreen-state" aria-live="polite">WINDOWED</output>
+              </div>
+            </fieldset>
+
+            <fieldset class="option-group">
+              <legend>INTERFACE &amp; MOTION</legend>
+              <div class="options-grid">
+                <label class="option-row option-row--range">
+                  <span>
+                    <strong>UI SCALE</strong>
+                    <small>Interface size, 80%–150%</small>
+                  </span>
+                  <span class="option-row__range-control">
+                    <output id="ui-scale-output" for="ui-scale">100%</output>
+                    <input
+                      id="ui-scale"
+                      name="uiScale"
+                      type="range"
+                      min="0.8"
+                      max="1.5"
+                      step="0.05"
+                      value="1"
+                    />
+                  </span>
+                </label>
+                <label class="option-row">
+                  <span><strong>PLAYER MARKERS</strong><small>World label size</small></span>
+                  <select id="marker-size" name="markerSize">
+                    <option value="small">Small</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="large">Large</option>
+                  </select>
+                </label>
+                <label class="option-row option-row--toggle">
+                  <span>
+                    <strong>REDUCED MOTION</strong>
+                    <small>Minimize optional interface and camera motion</small>
+                  </span>
+                  <input id="reduced-motion" name="reducedMotion" type="checkbox" />
+                </label>
+                <label class="option-row">
+                  <span
+                    ><strong>CAMERA SMOOTHING</strong><small>Shared camera response</small></span
+                  >
+                  <select id="camera-smoothing" name="cameraSmoothing">
+                    <option value="default" selected>Default</option>
+                    <option value="reduced">Reduced</option>
+                    <option value="instant">Instant</option>
+                  </select>
+                </label>
+                <label class="option-row">
+                  <span><strong>PARTICLE DENSITY</strong><small>Exhaust and feedback</small></span>
+                  <select id="particle-density" name="particleDensity">
+                    <option value="full" selected>Full</option>
+                    <option value="reduced">Reduced</option>
+                    <option value="off">Off</option>
+                  </select>
+                </label>
+                <label class="option-row option-row--toggle">
+                  <span>
+                    <strong>HIGH-CONTRAST INTERACTABLES</strong>
+                    <small>Stronger portal and booster outlines</small>
+                  </span>
+                  <input
+                    id="high-contrast-interactables"
+                    name="highContrastInteractables"
+                    type="checkbox"
+                  />
+                </label>
+                <label class="option-row option-row--toggle">
+                  <span>
+                    <strong>AUTOMATIC UPRIGHT RECOVERY</strong>
+                    <small>Recover cars that remain overturned</small>
+                  </span>
+                  <input
+                    id="automatic-upright-recovery"
+                    name="automaticUprightRecovery"
+                    type="checkbox"
+                  />
+                </label>
+              </div>
+            </fieldset>
+
+            <fieldset class="option-group">
+              <legend>CONTROLLER RESPONSE</legend>
+              <div class="options-grid">
+                <label class="option-row option-row--range">
+                  <span><strong>ANALOG DEAD ZONE</strong><small>Ignore stick drift</small></span>
+                  <span class="option-row__range-control">
+                    <output id="analog-dead-zone-output" for="analog-dead-zone">15%</output>
+                    <input
+                      id="analog-dead-zone"
+                      name="analogDeadZone"
+                      type="range"
+                      min="0"
+                      max="0.5"
+                      step="0.01"
+                      value="0.15"
+                    />
+                  </span>
+                </label>
+                <label class="option-row option-row--range">
+                  <span><strong>ANALOG SENSITIVITY</strong><small>Steering response</small></span>
+                  <span class="option-row__range-control">
+                    <output id="analog-sensitivity-output" for="analog-sensitivity">1.00×</output>
+                    <input
+                      id="analog-sensitivity"
+                      name="analogSensitivity"
+                      type="range"
+                      min="0.5"
+                      max="2"
+                      step="0.05"
+                      value="1"
+                    />
+                  </span>
+                </label>
+              </div>
+            </fieldset>
+
+            <fieldset class="option-group">
+              <legend>AUDIO</legend>
+              <div class="options-grid options-grid--three">
+                <label class="option-row option-row--range">
+                  <span><strong>MASTER VOLUME</strong><small>All game audio</small></span>
+                  <span class="option-row__range-control">
+                    <output id="master-volume-output" for="master-volume">80%</output>
+                    <input
+                      id="master-volume"
+                      name="masterVolume"
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value="0.8"
+                    />
+                  </span>
+                </label>
+                <label class="option-row option-row--range">
+                  <span><strong>EFFECTS VOLUME</strong><small>Cars and interactions</small></span>
+                  <span class="option-row__range-control">
+                    <output id="effects-volume-output" for="effects-volume">100%</output>
+                    <input
+                      id="effects-volume"
+                      name="effectsVolume"
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value="1"
+                    />
+                  </span>
+                </label>
+                <label class="option-row option-row--range">
+                  <span><strong>MUSIC VOLUME</strong><small>Menu and ambience</small></span>
+                  <span class="option-row__range-control">
+                    <output id="music-volume-output" for="music-volume">100%</output>
+                    <input
+                      id="music-volume"
+                      name="musicVolume"
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value="1"
+                    />
+                  </span>
+                </label>
+              </div>
+            </fieldset>
+
+            <div class="options-actions">
+              <button id="reset-defaults-button" class="button button--quiet" type="button">
+                <span>RESET DEFAULTS</span><span aria-hidden="true">↺</span>
+              </button>
+              <p id="options-status" role="status" aria-live="polite">
+                Changes save automatically.
+              </p>
+            </div>
+          </form>
+        </section>
+
+        <section id="screen-pause" class="screen screen--centered screen--dimmed" hidden>
+          <div class="pause-card" role="dialog" aria-modal="true" aria-labelledby="pause-heading">
+            <span class="eyebrow">SIMULATION HALTED</span>
+            <h2 id="pause-heading">PAUSED</h2>
+            <button id="resume-button" class="button button--primary" type="button">RESUME</button>
+            <button id="reset-button" class="button" type="button">RESET SANDBOX</button>
+            <button id="return-menu-button" class="button button--quiet" type="button">
+              RETURN TO TITLE
+            </button>
+            <small>Press P to resume</small>
+          </div>
+        </section>
+
+        <section id="screen-error" class="screen screen--centered screen--dimmed" hidden>
+          <div class="error-card" role="alert">
+            <span class="eyebrow">RECOVERY REQUIRED</span>
+            <h2>THE LAB STOPPED</h2>
+            <p id="error-message">An unexpected browser error occurred.</p>
+            <button id="reload-button" class="button button--primary" type="button">RELOAD</button>
+          </div>
+        </section>
+
+        <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+      </div>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
