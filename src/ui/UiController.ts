@@ -383,6 +383,26 @@ const NAVIGATION_DIRECTIONS = new Map<string, NavigationDirection>([
 const FOCUSABLE_SELECTOR =
   'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+export type EditorLevel = "easy" | "pro";
+
+const EDITOR_LEVEL_STORAGE_KEY = "mini-wheels.editor-level";
+
+function readStoredEditorLevel(): EditorLevel {
+  try {
+    return window.localStorage.getItem(EDITOR_LEVEL_STORAGE_KEY) === "pro" ? "pro" : "easy";
+  } catch {
+    return "easy";
+  }
+}
+
+/** Splits an easy-mode button's "control-id=value" instruction. */
+function splitEasyAssignment(assignment: string): readonly [string, string] {
+  const separator = assignment.indexOf("=");
+  return separator < 0
+    ? [assignment, ""]
+    : [assignment.slice(0, separator), assignment.slice(separator + 1)];
+}
+
 function requireElement<T extends HTMLElement>(id: string): T {
   const element = document.getElementById(id);
   if (!(element instanceof HTMLElement)) {
@@ -429,6 +449,7 @@ export class UiController {
   private mapLibraryItems: readonly MapLibraryItemView[] = Object.freeze([]);
   private mapLibraryTrashVisible = false;
   private editorTrayCategory = "all";
+  private editorLevel: EditorLevel = "easy";
   private pauseLabelsBeforeResults: { readonly heading: string; readonly reset: string } | null =
     null;
 
@@ -755,6 +776,9 @@ export class UiController {
     requireElement<HTMLButtonElement>("editor-duplicate-button").addEventListener("click", () => {
       this.handlers?.editorDuplicate();
     });
+    for (const button of document.querySelectorAll<HTMLButtonElement>("[data-editor-action]")) {
+      button.addEventListener("click", () => this.runEditorAction(button.dataset["editorAction"]));
+    }
     requireElement<HTMLButtonElement>("editor-delete-button").addEventListener("click", () => {
       this.handlers?.editorDelete();
     });
@@ -894,6 +918,42 @@ export class UiController {
     ]) {
       requireElement(inputId).addEventListener("change", () => this.emitEditorRaceSetup());
     }
+    // Easy-mode picture buttons drive the same controls the expert panels use.
+    for (const button of document.querySelectorAll<HTMLButtonElement>("[data-easy-set]")) {
+      button.addEventListener("click", () => {
+        const [controlId, value] = splitEasyAssignment(button.dataset["easySet"] ?? "");
+        const control = document.getElementById(controlId);
+        if (control instanceof HTMLSelectElement || control instanceof HTMLInputElement) {
+          control.value = value;
+          control.dispatchEvent(new Event("change"));
+          this.syncEasyEditorControls();
+        }
+      });
+    }
+    for (const button of document.querySelectorAll<HTMLButtonElement>("[data-easy-step]")) {
+      button.addEventListener("click", () => {
+        const [controlId, step] = splitEasyAssignment(button.dataset["easyStep"] ?? "");
+        const control = document.getElementById(controlId);
+        if (control instanceof HTMLInputElement) {
+          const minimum = Number(control.min || "1");
+          const maximum = Number(control.max || "99");
+          const next = Math.min(maximum, Math.max(minimum, Number(control.value) + Number(step)));
+          control.value = String(next);
+          control.dispatchEvent(new Event("change"));
+          this.syncEasyEditorControls();
+        }
+      });
+    }
+    const levelButton = requireElement<HTMLButtonElement>("editor-level-button");
+    levelButton.addEventListener("click", () => {
+      this.setEditorLevel(this.editorLevel === "easy" ? "pro" : "easy");
+      this.toast(
+        this.editorLevel === "pro"
+          ? "PRO mode: every expert setting is showing."
+          : "Easy mode: just the fun stuff.",
+      );
+    });
+    this.setEditorLevel(readStoredEditorLevel());
     for (const button of document.querySelectorAll<HTMLButtonElement>("[data-editor-transform]")) {
       button.addEventListener("click", () => {
         const mode = button.dataset["editorTransform"];
@@ -1415,6 +1475,13 @@ export class UiController {
     const multiPanel = requireElement("editor-multi-selection-panel");
     panel.hidden = view === null || selectedCount !== 1;
     multiPanel.hidden = selectedCount < 2;
+    requireElement("editor-action-bar").hidden = selectedCount === 0;
+    for (const action of ["bigger", "smaller"]) {
+      const button = document.querySelector<HTMLButtonElement>(`[data-editor-action="${action}"]`);
+      if (button !== null) {
+        button.disabled = selectedCount !== 1;
+      }
+    }
     requireElement("editor-selected-count").textContent = String(selectedCount);
     if (view === null) {
       return;
@@ -1570,7 +1637,7 @@ export class UiController {
       return;
     }
     const sign = view.kind === "sign";
-    requireElement("editor-guidance-heading").textContent = sign ? "ARROW SIGN" : "DIRECTION ARROW";
+    requireElement("editor-guidance-heading").textContent = sign ? "SIGN" : "FLOOR ARROW";
     requireElement("editor-guidance-solid-field").hidden = !sign;
     requireElement("editor-guidance-help").textContent = sign
       ? "Turn the sign to point racers onward. Solid signs can block cars; decorative signs do not."
@@ -1586,7 +1653,7 @@ export class UiController {
       return;
     }
     const light = view.kind === "light";
-    requireElement("editor-decoration-heading").textContent = light ? "POINT LIGHT" : "COLOR STRIP";
+    requireElement("editor-decoration-heading").textContent = light ? "LAMP" : "GLOW STRIP";
     requireElement("editor-decoration-glow-field").hidden = light;
     requireElement("editor-decoration-intensity-field").hidden = !light;
     requireElement("editor-decoration-range-field").hidden = !light;
@@ -1709,6 +1776,7 @@ export class UiController {
       view.recoveryPenaltySeconds,
     );
     requireElement<HTMLInputElement>("editor-race-laps").disabled = view.mode !== "circuit";
+    this.syncEasyEditorControls();
     requireElement("editor-race-setup-help").textContent =
       view.mode === "free-roam"
         ? "Free roam ignores race progress. Choose a scored mode to test checkpoints and laps."
@@ -1759,6 +1827,61 @@ export class UiController {
     requireElement<HTMLInputElement>("editor-environment-oob").value = conciseNumber(
       view.outOfBoundsHeight,
     );
+    this.syncEasyEditorControls();
+  }
+
+  /** Switches the creator between the simple first-timer view and the full expert view. */
+  public setEditorLevel(level: EditorLevel): void {
+    this.editorLevel = level;
+    requireElement("screen-editor").dataset["editorLevel"] = level;
+    const button = requireElement<HTMLButtonElement>("editor-level-button");
+    button.classList.toggle("is-active", level === "pro");
+    button.setAttribute("aria-pressed", String(level === "pro"));
+    try {
+      window.localStorage.setItem(EDITOR_LEVEL_STORAGE_KEY, level);
+    } catch {
+      // Blocked storage only means the choice is not remembered.
+    }
+  }
+
+  /** Big action bar under the build view: one click for the common changes. */
+  private runEditorAction(action: string | undefined): void {
+    if (action === "move" || action === "spin") {
+      document
+        .querySelector<HTMLButtonElement>(
+          `[data-editor-transform="${action === "move" ? "move" : "rotate"}"]`,
+        )
+        ?.click();
+    } else if (action === "bigger" || action === "smaller") {
+      const size = requireElement<HTMLInputElement>("editor-primary-size");
+      const current = Number(size.value);
+      if (!Number.isFinite(current) || current <= 0) {
+        return;
+      }
+      const next = action === "bigger" ? current * 1.25 : current / 1.25;
+      size.value = conciseNumber(Math.max(Number(size.min || "0.5"), next));
+      size.dispatchEvent(new Event("change"));
+    } else if (action === "copy") {
+      this.handlers?.editorDuplicate();
+    } else if (action === "bin") {
+      this.handlers?.editorDelete();
+    }
+  }
+
+  /** Lights up the easy-mode picture buttons that match the current map settings. */
+  private syncEasyEditorControls(): void {
+    for (const button of document.querySelectorAll<HTMLButtonElement>("[data-easy-set]")) {
+      const [controlId, value] = splitEasyAssignment(button.dataset["easySet"] ?? "");
+      const control = document.getElementById(controlId);
+      const active =
+        (control instanceof HTMLSelectElement || control instanceof HTMLInputElement) &&
+        control.value === value;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-pressed", String(active));
+    }
+    const laps = requireElement<HTMLInputElement>("editor-race-laps");
+    requireElement("editor-easy-laps-value").textContent = laps.value || "1";
+    requireElement("editor-easy-laps").hidden = laps.disabled;
   }
 
   public renderEditorTrack(view: EditorTrackView | null): void {

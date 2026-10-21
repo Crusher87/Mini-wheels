@@ -24,7 +24,7 @@ test("ED foundation: creates, previews, saves, reloads, and duplicates a browser
 
   await page.locator("#editor-map-name").fill("Jump Garden");
   await expect(page.locator("#editor-save-status")).toHaveText("NAME CHANGE NOT SAVED");
-  await page.getByRole("button", { name: /save map/i }).click();
+  await page.locator("#editor-save-button").click();
   await expect(page.locator("#editor-save-status")).toHaveText("SAVED LOCALLY");
   await expect(page.locator("#editor-map-revision")).toHaveText("2");
 
@@ -67,13 +67,13 @@ test("ED normal play: launches a saved map from the library and returns to maps"
   await page.locator("#editor-tutorial-skip-button").click();
   await page.locator("#editor-map-name").fill("Family Race");
   await page.locator("#editor-race-mode").selectOption("circuit");
-  await page.getByRole("button", { name: /save map/i }).click();
+  await page.locator("#editor-save-button").click();
   await page.getByRole("button", { name: "Library" }).click();
 
   await page.getByRole("button", { name: "PLAY MAP" }).click();
   await page.waitForFunction(() => window.__MINI_WHEELS_TEST__?.appSnapshot().state === "playing");
   await expect(page.locator("#toast")).toHaveText(
-    "Race rules are incomplete, so this launch is safe Free Drive.",
+    "This map is not ready for a race yet, so you can just drive around.",
   );
   await expect
     .poll(() => page.evaluate(() => window.__MINI_WHEELS_TEST__?.snapshot()?.race.phase))
@@ -97,7 +97,7 @@ test("ED library: searches tags, favorites, exports, restores, deletes, and safe
   await page.locator("#editor-map-name").fill("Rainbow Leap");
   await page.locator("#editor-map-tags").fill("rainbow, jumps, family");
   await page.locator("#editor-map-tags").dispatchEvent("change");
-  await page.getByRole("button", { name: /save map/i }).click();
+  await page.locator("#editor-save-button").click();
   await page.getByRole("button", { name: "Library" }).click();
 
   await page.locator("#map-library-search").fill("jumps");
@@ -152,7 +152,7 @@ test("ED recovery: reload restores the last durably journaled edit before autosa
   await page.getByRole("button", { name: /new playground/i }).click();
   await page.locator("#editor-tutorial-skip-button").click();
   await page.locator("#editor-map-name").fill("Crash Safe Course");
-  await page.getByRole("button", { name: /save map/i }).click();
+  await page.locator("#editor-save-button").click();
   await page.locator("#editor-top-down-button").click();
   await page.locator('[data-editor-asset="shape.block"]').click();
   await page.locator("#editor-viewport-chrome").click({ position: { x: 500, y: 300 } });
@@ -944,7 +944,7 @@ test("ED decoration: guidance, lights, strips, and sculpture survive Test Mode",
 
   await page.locator('[data-editor-asset="travel.direction-arrow"]').click();
   await viewport.click({ position: { x: 540, y: 380 } });
-  await expect(page.locator("#editor-guidance-heading")).toHaveText("DIRECTION ARROW");
+  await expect(page.locator("#editor-guidance-heading")).toHaveText("FLOOR ARROW");
   await expect(page.locator("#editor-guidance-solid-field")).toBeHidden();
   await page.locator("#editor-guidance-color").fill("#ff8800");
   await page.locator("#editor-guidance-glow").fill("1.4");
@@ -952,14 +952,14 @@ test("ED decoration: guidance, lights, strips, and sculpture survive Test Mode",
 
   await page.locator('[data-editor-asset="decoration.arrow-sign"]').click();
   await viewport.click({ position: { x: 720, y: 380 } });
-  await expect(page.locator("#editor-guidance-heading")).toHaveText("ARROW SIGN");
+  await expect(page.locator("#editor-guidance-heading")).toHaveText("SIGN");
   await expect(page.locator("#editor-guidance-solid-field")).toBeVisible();
   await page.locator("#editor-guidance-color").fill("#22ccff");
   await page.locator("#editor-guidance-solid").check();
 
   await page.locator('[data-editor-asset="decoration.point-light"]').click();
   await viewport.click({ position: { x: 830, y: 430 } });
-  await expect(page.locator("#editor-decoration-heading")).toHaveText("POINT LIGHT");
+  await expect(page.locator("#editor-decoration-heading")).toHaveText("LAMP");
   await expect(page.locator("#editor-decoration-intensity-field")).toBeVisible();
   await page.locator("#editor-decoration-color").fill("#ffcc44");
   await page.locator("#editor-decoration-intensity").fill("7.5");
@@ -968,7 +968,7 @@ test("ED decoration: guidance, lights, strips, and sculpture survive Test Mode",
 
   await page.locator('[data-editor-asset="decoration.color-strip"]').click();
   await viewport.click({ position: { x: 650, y: 500 } });
-  await expect(page.locator("#editor-decoration-heading")).toHaveText("COLOR STRIP");
+  await expect(page.locator("#editor-decoration-heading")).toHaveText("GLOW STRIP");
   await expect(page.locator("#editor-decoration-glow-field")).toBeVisible();
   await expect(page.locator("#editor-decoration-intensity-field")).toBeHidden();
   await page.locator("#editor-decoration-color").fill("#44ddff");
@@ -1900,9 +1900,9 @@ test("ED viewport: zoom stays available while selected and hover picks the visib
   await page.keyboard.press("Escape");
 
   await viewport.hover({ position: center });
-  await expect(page.locator("#editor-hover-label")).toHaveText("HOVER · START GRID");
+  await expect(page.locator("#editor-hover-label")).toHaveText("HOVER · START LINE");
   await viewport.click({ position: center });
-  await expect(page.locator("#editor-selected-name")).toHaveText("START GRID");
+  await expect(page.locator("#editor-selected-name")).toHaveText("START LINE");
 
   await viewport.hover({ position: center });
   await page.keyboard.down("Alt");
@@ -1916,7 +1916,7 @@ test("ED viewport: zoom stays available while selected and hover picks the visib
     slider.dispatchEvent(new Event("input", { bubbles: true }));
   });
   await expect(page.locator("#editor-zoom-output")).toHaveText("15%");
-  await expect(page.locator("#editor-selected-name")).toHaveText("START GRID");
+  await expect(page.locator("#editor-selected-name")).toHaveText("START LINE");
 });
 
 test("ED endpoints: either end magnetically bridges into one wall-safe loop", async ({ page }) => {

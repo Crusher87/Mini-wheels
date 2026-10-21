@@ -626,6 +626,7 @@
         <section
           id="screen-editor"
           class="screen screen--editor"
+          data-editor-level="easy"
           aria-labelledby="editor-heading"
           hidden
         >
@@ -706,7 +707,7 @@
                   <path d="M20 12a8 8 0 1 1-3-6.2" />
                   <path d="M20 4v5h-5" />
                 </svg>
-                <span>TURN</span>
+                <span>SPIN</span>
               </button>
               <button
                 class="icon-button tool-button"
@@ -731,9 +732,24 @@
                   <rect x="4" y="4" width="16" height="16" />
                   <path d="M4 12h16M12 4v16" opacity=".45" />
                 </svg>
-                <span>TOP</span>
+                <span>VIEW</span>
               </button>
             </div>
+            <button
+              id="editor-level-button"
+              class="icon-button tool-button"
+              type="button"
+              aria-pressed="false"
+              title="Show every expert setting"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" />
+                <circle cx="16" cy="6" r="2" />
+                <circle cx="10" cy="12" r="2" />
+                <circle cx="18" cy="18" r="2" />
+              </svg>
+              <span>PRO</span>
+            </button>
             <button
               id="editor-help-button"
               class="icon-button tool-button"
@@ -747,11 +763,21 @@
               </svg>
               <span>HELP</span>
             </button>
-            <button id="editor-test-button" class="button editor-test-button" type="button">
-              TEST NOW
+            <button
+              id="editor-test-button"
+              class="button editor-test-button"
+              type="button"
+              title="Drive your map right now"
+            >
+              <span aria-hidden="true">▶</span><span>PLAY</span>
             </button>
-            <button id="editor-save-button" class="button button--primary" type="button">
-              <span>SAVE MAP</span><span aria-hidden="true">◆</span>
+            <button
+              id="editor-save-button"
+              class="button button--primary"
+              type="button"
+              title="Your map also saves by itself"
+            >
+              <span>SAVE</span><span aria-hidden="true">✓</span>
             </button>
           </header>
 
@@ -760,7 +786,7 @@
             <h2 id="editor-heading">BUILD</h2>
             <label class="editor-search" for="editor-object-search">
               <span class="sr-only">Search objects</span>
-              <input id="editor-object-search" type="search" placeholder="Search objects" />
+              <input id="editor-object-search" type="search" placeholder="Find something" />
             </label>
             <div class="editor-category-tabs" role="group" aria-label="Object categories">
               <button type="button" data-editor-category="all" aria-pressed="true">
@@ -816,7 +842,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#9648;</span>
-                <strong>ROUNDED</strong>
+                <strong>ROUND FLOOR</strong>
                 <small>CLICK TO PLACE</small>
               </button>
               <button
@@ -826,7 +852,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#11041;</span>
-                <strong>POLYGON</strong>
+                <strong>SHAPE FLOOR</strong>
                 <small>CLICK TO PLACE</small>
               </button>
               <button
@@ -836,7 +862,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#8764;</span>
-                <strong>FREEFORM</strong>
+                <strong>DRAW FLOOR</strong>
                 <small>PRESS + DRAW</small>
               </button>
               <button
@@ -846,7 +872,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#9671;</span>
-                <strong>VOID BASE</strong>
+                <strong>SKY ISLAND</strong>
                 <small>CLICK TO PLACE</small>
               </button>
               <button
@@ -866,7 +892,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#9679;</span>
-                <strong>COLUMN</strong>
+                <strong>TOWER</strong>
                 <small>CLICK TO PLACE</small>
               </button>
               <button
@@ -876,7 +902,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#9679;</span>
-                <strong>PHYSICS BALL</strong>
+                <strong>BALL</strong>
                 <small>ROLLS + BOUNCES</small>
               </button>
               <button
@@ -886,7 +912,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#9670;</span>
-                <strong>PHYSICS CUBE</strong>
+                <strong>BOX</strong>
                 <small>PUSHABLE</small>
               </button>
               <button
@@ -896,7 +922,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#9646;</span>
-                <strong>PHYSICS DOMINO</strong>
+                <strong>DOMINO</strong>
                 <small>KNOCK-DOWN OBSTACLE</small>
               </button>
               <button
@@ -906,7 +932,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#8597;</span>
-                <strong>MOVING PLATFORM</strong>
+                <strong>LIFT</strong>
                 <small>LIFT OR SHUTTLE</small>
               </button>
               <button
@@ -916,7 +942,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#8635;</span>
-                <strong>ROTATING BAR</strong>
+                <strong>SPINNER</strong>
                 <small>SPINNING OBSTACLE</small>
               </button>
               <button
@@ -926,7 +952,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#9637;</span>
-                <strong>MOVING DOOR</strong>
+                <strong>DOOR</strong>
                 <small>OPENS + CLOSES</small>
               </button>
               <button
@@ -936,7 +962,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#9679;</span>
-                <strong>BIG BUTTON</strong>
+                <strong>BUTTON</strong>
                 <small>PRESS TO ACTIVATE</small>
               </button>
               <button
@@ -946,7 +972,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#9648;</span>
-                <strong>PRESSURE PLATE</strong>
+                <strong>STEP PAD</strong>
                 <small>HOLDS WHILE OCCUPIED</small>
               </button>
               <button
@@ -956,7 +982,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#9633;</span>
-                <strong>TRIGGER ZONE</strong>
+                <strong>MAGIC ZONE</strong>
                 <small>ENTER OR EXIT</small>
               </button>
               <button
@@ -1036,7 +1062,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#10140;</span>
-                <strong>DIRECTION ARROW</strong>
+                <strong>FLOOR ARROW</strong>
                 <small>SHOW THE WAY</small>
               </button>
               <button
@@ -1046,7 +1072,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#10143;</span>
-                <strong>ARROW SIGN</strong>
+                <strong>SIGN</strong>
                 <small>DECORATIVE OR SOLID</small>
               </button>
               <button
@@ -1056,7 +1082,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#10022;</span>
-                <strong>POINT LIGHT</strong>
+                <strong>LAMP</strong>
                 <small>LIGHT AN AREA</small>
               </button>
               <button
@@ -1066,7 +1092,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#9644;</span>
-                <strong>COLOR STRIP</strong>
+                <strong>GLOW STRIP</strong>
                 <small>NON-BLOCKING GLOW</small>
               </button>
               <button
@@ -1076,7 +1102,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#9670;</span>
-                <strong>TOY SCULPTURE</strong>
+                <strong>STATUE</strong>
                 <small>THEMED MAP PROP</small>
               </button>
               <button
@@ -1086,7 +1112,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#10022;</span>
-                <strong>EFFECT EMITTER</strong>
+                <strong>CONFETTI</strong>
                 <small>SPARKS + CONFETTI</small>
               </button>
               <button
@@ -1097,7 +1123,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">〰</span>
-                <strong>TRACK</strong>
+                <strong>DRAW ROAD</strong>
                 <small>PRESS + DRAG</small>
               </button>
               <button
@@ -1107,7 +1133,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#9552;</span>
-                <strong>ROAD STRAIGHT</strong>
+                <strong>STRAIGHT ROAD</strong>
                 <small>CLICK TO PLACE</small>
               </button>
               <button
@@ -1117,7 +1143,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#8989;</span>
-                <strong>ROAD CORNER</strong>
+                <strong>CURVED ROAD</strong>
                 <small>CLICK TO PLACE</small>
               </button>
               <button
@@ -1127,7 +1153,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#9648;</span>
-                <strong>BRIDGE DECK</strong>
+                <strong>BRIDGE</strong>
                 <small>CLICK TO PLACE</small>
               </button>
               <button
@@ -1137,7 +1163,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#9473;</span>
-                <strong>GUARD RAIL</strong>
+                <strong>RAIL</strong>
                 <small>CLICK TO PLACE</small>
               </button>
               <button
@@ -1147,7 +1173,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#928;</span>
-                <strong>OVERPASS SUPPORT</strong>
+                <strong>PILLAR</strong>
                 <small>CLICK TO PLACE</small>
               </button>
               <button
@@ -1167,7 +1193,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#9644;</span>
-                <strong>BARRIER</strong>
+                <strong>WALL</strong>
                 <small>CLICK TO PLACE</small>
               </button>
               <button
@@ -1197,7 +1223,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">⌁</span>
-                <strong>START GRID</strong>
+                <strong>START LINE</strong>
                 <small>CLICK, THEN PLACE</small>
               </button>
               <button
@@ -1207,7 +1233,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#9650;</span>
-                <strong>PLAYER SPAWN</strong>
+                <strong>START SPOT</strong>
                 <small>CLICK TO PLACE</small>
               </button>
               <button
@@ -1227,7 +1253,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#9873;</span>
-                <strong>FINISH GATE</strong>
+                <strong>FINISH</strong>
                 <small>DRIVE THROUGH</small>
               </button>
               <button
@@ -1237,7 +1263,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">S</span>
-                <strong>SHORTCUT MARKER</strong>
+                <strong>SHORTCUT</strong>
                 <small>DRIVE THROUGH</small>
               </button>
               <button
@@ -1247,7 +1273,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">&#8635;</span>
-                <strong>RECOVERY VOLUME</strong>
+                <strong>RESPAWN ZONE</strong>
                 <small>NON-BLOCKING</small>
               </button>
               <button
@@ -1257,7 +1283,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">R</span>
-                <strong>SAFE RECOVERY</strong>
+                <strong>RESPAWN SPOT</strong>
                 <small>MARKS SAFE POSE</small>
               </button>
               <button
@@ -1267,7 +1293,7 @@
                 aria-pressed="false"
               >
                 <span aria-hidden="true">!</span>
-                <strong>OUT OF BOUNDS</strong>
+                <strong>FALL ZONE</strong>
                 <small>NON-BLOCKING</small>
               </button>
             </div>
@@ -1299,11 +1325,11 @@
               </label>
             </fieldset>
             <section class="editor-prefab-library" aria-labelledby="editor-prefab-heading">
-              <span class="eyebrow">MY PREFABS</span>
-              <h3 id="editor-prefab-heading">REUSABLE BUILDS</h3>
+              <span class="eyebrow">SAVED BY YOU</span>
+              <h3 id="editor-prefab-heading">MY BUILDS</h3>
               <div id="editor-prefab-list" class="editor-prefab-list"></div>
               <p id="editor-prefab-empty" class="editor-phase-note">
-                Select a build and save it as a prefab to reuse it in any map.
+                Click the things you made, then save them to use again in any map.
               </p>
             </section>
           </aside>
@@ -1334,10 +1360,43 @@
               hidden
             ></output>
             <div id="editor-selection-marquee" class="editor-selection-marquee" hidden></div>
+            <div
+              id="editor-action-bar"
+              class="editor-action-bar"
+              role="toolbar"
+              aria-label="Change the selected thing"
+              hidden
+            >
+              <button type="button" data-editor-action="move" title="Drag the arrows to move it">
+                <span aria-hidden="true">✥</span>MOVE
+              </button>
+              <button type="button" data-editor-action="spin" title="Drag the ring to spin it">
+                <span aria-hidden="true">↻</span>SPIN
+              </button>
+              <button type="button" data-editor-action="bigger" title="Make it bigger">
+                <span aria-hidden="true">＋</span>BIGGER
+              </button>
+              <button type="button" data-editor-action="smaller" title="Make it smaller">
+                <span aria-hidden="true">－</span>SMALLER
+              </button>
+              <button type="button" data-editor-action="copy" title="Make a copy">
+                <span aria-hidden="true">⧉</span>COPY
+              </button>
+              <button
+                type="button"
+                data-editor-action="bin"
+                class="editor-action-bar__bin"
+                title="Remove it (UNDO brings it back)"
+              >
+                <span aria-hidden="true">✕</span>BIN
+              </button>
+            </div>
             <section id="editor-tutorial" class="editor-tutorial" aria-live="polite" hidden>
               <span id="editor-tutorial-step" class="status-chip">1 OF 7</span>
               <strong id="editor-tutorial-instruction">Move the camera.</strong>
-              <p id="editor-tutorial-detail">Right-drag to orbit or middle-drag to pan.</p>
+              <p id="editor-tutorial-detail">
+                Hold the right mouse button and drag to look around.
+              </p>
               <div>
                 <button id="editor-tutorial-show-button" class="button button--quiet" type="button">
                   SHOW ME
@@ -1359,7 +1418,7 @@
           <aside class="editor-inspector" aria-label="Map inspector">
             <section id="editor-track-panel" class="editor-selection-panel" hidden>
               <span class="eyebrow">SELECTED</span>
-              <h3>SMOOTH TRACK</h3>
+              <h3>ROAD</h3>
               <div class="editor-transform-grid">
                 <label for="editor-track-width">
                   <span>WIDTH</span>
@@ -1375,7 +1434,7 @@
                 </label>
               </div>
               <fieldset class="editor-track-walls">
-                <legend>TRACK WALLS</legend>
+                <legend>WALLS</legend>
                 <label for="editor-track-wall-left">
                   <input id="editor-track-wall-left" type="checkbox" />
                   <span>LEFT WALL</span>
@@ -1386,8 +1445,8 @@
                 </label>
               </fieldset>
               <fieldset class="editor-track-wall-brush">
-                <legend>WALL PAINT BRUSH</legend>
-                <p>Choose a side, then drag along the road.</p>
+                <legend>PAINT WALLS</legend>
+                <p>Pick a side, then drag along the road to paint walls.</p>
                 <div class="editor-track-wall-brush__actions">
                   <button
                     id="editor-select-track-range-button"
@@ -1990,10 +2049,10 @@
               </div>
             </section>
             <section id="editor-interaction-link-panel" class="editor-selection-panel" hidden>
-              <span class="eyebrow">NO-CODE LINK</span>
+              <span class="eyebrow">MAGIC LINK</span>
               <h3>WHEN → DO</h3>
               <p id="editor-interaction-link-help" class="editor-phase-note">
-                Select a source, then Shift-click a target.
+                Click the thing that starts it, then Shift-click the thing it changes.
               </p>
               <div class="editor-transform-grid">
                 <label for="editor-interaction-event">
@@ -2026,18 +2085,91 @@
             </section>
             <section id="editor-prefab-save-panel" class="editor-selection-panel" hidden>
               <span class="eyebrow">REUSE THIS BUILD</span>
-              <h3>SAVE AS PREFAB</h3>
+              <h3>SAVE THIS BUILD</h3>
               <div class="editor-transform-grid">
                 <label class="editor-transform-grid__wide" for="editor-prefab-name">
-                  <span>PREFAB NAME</span>
+                  <span>NAME</span>
                   <input id="editor-prefab-name" maxlength="80" placeholder="My Cool Build" />
                 </label>
               </div>
               <button id="editor-save-prefab-button" class="button button--quiet" type="button">
                 SAVE SELECTION
               </button>
+              <p class="editor-phase-note">Saved builds drop in as copies you can still change.</p>
+            </section>
+            <section
+              id="editor-easy-world"
+              class="editor-selection-panel easy-only"
+              aria-labelledby="editor-easy-world-heading"
+            >
+              <span class="eyebrow">MY WORLD</span>
+              <h3 id="editor-easy-world-heading">SKY</h3>
+              <div class="easy-choice-grid">
+                <button type="button" data-easy-set="editor-environment-sky=day">
+                  <span aria-hidden="true">☀</span>DAY
+                </button>
+                <button type="button" data-easy-set="editor-environment-sky=sunset">
+                  <span aria-hidden="true">◒</span>SUNSET
+                </button>
+                <button type="button" data-easy-set="editor-environment-sky=night">
+                  <span aria-hidden="true">☾</span>NIGHT
+                </button>
+              </div>
+              <h3>JUMPS</h3>
+              <div class="easy-choice-grid">
+                <button type="button" data-easy-set="editor-environment-gravity-preset=earth">
+                  <span aria-hidden="true">●</span>NORMAL
+                </button>
+                <button type="button" data-easy-set="editor-environment-gravity-preset=floaty">
+                  <span aria-hidden="true">○</span>FLOATY
+                </button>
+                <button type="button" data-easy-set="editor-environment-gravity-preset=moon">
+                  <span aria-hidden="true">☾</span>MOON
+                </button>
+              </div>
+              <h3>MUSIC</h3>
+              <div class="easy-choice-grid easy-choice-grid--four">
+                <button type="button" data-easy-set="editor-environment-music=">
+                  <span aria-hidden="true">✕</span>OFF
+                </button>
+                <button type="button" data-easy-set="editor-environment-music=music.arcade">
+                  <span aria-hidden="true">♪</span>ARCADE
+                </button>
+                <button type="button" data-easy-set="editor-environment-music=music.cruise">
+                  <span aria-hidden="true">♫</span>CHILL
+                </button>
+                <button type="button" data-easy-set="editor-environment-music=music.starlight">
+                  <span aria-hidden="true">✦</span>SPACE
+                </button>
+              </div>
+            </section>
+            <section
+              id="editor-easy-race"
+              class="editor-selection-panel easy-only"
+              aria-labelledby="editor-easy-race-heading"
+            >
+              <span class="eyebrow">HOW TO PLAY</span>
+              <h3 id="editor-easy-race-heading">GAME</h3>
+              <div class="easy-choice-grid easy-choice-grid--two">
+                <button type="button" data-easy-set="editor-race-mode=free-roam">
+                  <span aria-hidden="true">➜</span>JUST DRIVE
+                </button>
+                <button type="button" data-easy-set="editor-race-mode=circuit">
+                  <span aria-hidden="true">⚑</span>RACE
+                </button>
+              </div>
+              <div id="editor-easy-laps" class="easy-stepper">
+                <span>LAPS</span>
+                <button type="button" data-easy-step="editor-race-laps=-1" aria-label="Fewer laps">
+                  −
+                </button>
+                <output id="editor-easy-laps-value" aria-live="polite">1</output>
+                <button type="button" data-easy-step="editor-race-laps=1" aria-label="More laps">
+                  +
+                </button>
+              </div>
               <p class="editor-phase-note">
-                Prefabs place editable copies. Removing a prefab never removes placed objects.
+                Put a START LINE and a FINISH on your map, then press PLAY to race!
               </p>
             </section>
             <section class="editor-selection-panel editor-environment-panel">

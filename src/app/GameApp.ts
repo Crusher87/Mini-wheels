@@ -416,7 +416,9 @@ export class GameApp {
     }
     if (
       event.target instanceof Element &&
-      event.target.closest("button, input, select, textarea, a, .editor-zoom-control") !== null
+      event.target.closest(
+        "button, input, select, textarea, a, .editor-zoom-control, .editor-action-bar",
+      ) !== null
     ) {
       return;
     }
@@ -572,7 +574,7 @@ export class GameApp {
       );
       this.refreshEditorDocument(true);
       this.editorPreview.showPlacementGhost(this.editorTool, placementPoint, placementOptions);
-      this.ui.toast(`${this.editorEntityName(entity)} placed. Click again to keep building.`);
+      this.ui.toast(`${this.editorEntityName(entity)} added! Click again to add more.`);
       if (entity.assetId === "track.ramp") {
         this.advanceEditorTutorial(4);
       }
@@ -987,7 +989,7 @@ export class GameApp {
       } else if (target?.kind === "track-node") {
         this.ui.setEditorHoverLabel("TRACK POINT · DRAG TO SHAPE");
       } else if (target?.kind === "track") {
-        this.ui.setEditorHoverLabel("SMOOTH TRACK");
+        this.ui.setEditorHoverLabel("ROAD");
       } else if (target?.kind === "entity") {
         const entity = this.editorSession?.document.entities.find(
           (candidate) => candidate.id === target.id,
@@ -1187,10 +1189,10 @@ export class GameApp {
             this.editorSelectedTrackId = track.id;
             this.editorSelectedTrackNodeId = null;
             this.refreshEditorDocument(true);
-            this.ui.toast("Smooth track created. Drag from its end to continue.");
+            this.ui.toast("Road made! Drag from its end to make it longer.");
             this.advanceEditorTutorial(2);
           } else {
-            this.ui.toast("Drag a little farther to make a track.");
+            this.ui.toast("Drag a bit farther to draw a road.");
           }
         }
       }
@@ -1542,7 +1544,7 @@ export class GameApp {
         },
         editorFrameSelection: () => {
           if (this.editorPreview?.frameSelected() !== true) {
-            this.ui.toast("Select an object to frame it.");
+            this.ui.toast("Click something first, then zoom to it.");
           } else {
             this.ui.setEditorZoom(this.editorPreview.zoomLevel);
           }
@@ -1589,7 +1591,7 @@ export class GameApp {
             trackId === null ||
             this.editorPreview?.frameTrack(session.document, trackId) !== true
           ) {
-            this.ui.toast("Select a track to frame it.");
+            this.ui.toast("Click a road first, then zoom to it.");
           } else if (this.editorPreview !== undefined) {
             this.ui.setEditorZoom(this.editorPreview.zoomLevel);
           }
@@ -1841,7 +1843,7 @@ export class GameApp {
       }
       const compiled = compileMapDocument(record.document);
       if (!compiled.freeDriveReady) {
-        this.ui.toast("Edit this map and add a Start Grid before playing it.");
+        this.ui.toast("Add a START LINE to this map before playing it.");
         return;
       }
       const needsFreeDriveFallback = compiled.mapType !== "free-roam" && !compiled.scoredRaceReady;
@@ -1880,7 +1882,7 @@ export class GameApp {
       }
       document.getElementById("game-root")?.focus();
       if (needsFreeDriveFallback) {
-        this.ui.toast("Race rules are incomplete, so this launch is safe Free Drive.");
+        this.ui.toast("This map is not ready for a race yet, so you can just drive around.");
       }
     } catch (error) {
       this.worldSession?.dispose();
@@ -2104,7 +2106,7 @@ export class GameApp {
     const normalizedTitle = title.trim();
     if (normalizedTitle.length === 0) {
       this.ui.setEditorSaveStatus("ADD A MAP NAME", "failed");
-      this.ui.toast("Give the map a name before saving.");
+      this.ui.toast("Give your map a name first.");
       return false;
     }
     this.ui.setEditorSaveStatus("SAVING…", "pending");
@@ -2165,7 +2167,7 @@ export class GameApp {
       const normalizedTitle = title.value.trim();
       if (normalizedTitle.length === 0) {
         this.ui.setEditorSaveStatus("ADD A MAP NAME", "failed");
-        this.ui.toast("Give the map a name before testing it.");
+        this.ui.toast("Give your map a name first.");
         return;
       }
       session.setTitle(normalizedTitle);
@@ -2174,7 +2176,7 @@ export class GameApp {
     if (!blueprint.freeDriveReady) {
       this.ui.toast(
         blueprint.diagnostics.find((diagnostic) => diagnostic.level === "blocking")?.message ??
-          "Place a start grid before testing this map.",
+          "Add a START LINE so the cars know where to start.",
       );
       return;
     }
@@ -2674,7 +2676,7 @@ export class GameApp {
       this.editorSelectedTrackId = null;
       this.editorSelectedTrackNodeId = null;
       this.refreshEditorDocument(true);
-      this.ui.toast("Track deleted. Undo is available.");
+      this.ui.toast("Road gone! Press UNDO to bring it back.");
     }
   }
 
@@ -2760,28 +2762,28 @@ export class GameApp {
   private undoEditorChange(): void {
     if (this.editorSession?.undo() === true) {
       this.refreshEditorDocument(true);
-      this.ui.toast("Last edit undone.");
+      this.ui.toast("Undone!");
     }
   }
 
   private redoEditorChange(): void {
     if (this.editorSession?.redo() === true) {
       this.refreshEditorDocument(true);
-      this.ui.toast("Edit restored.");
+      this.ui.toast("Redone!");
     }
   }
 
   private duplicateEditorSelection(): void {
     if (this.editorSession?.duplicateSelected() === true) {
       this.refreshEditorDocument(true);
-      this.ui.toast("Object duplicated.");
+      this.ui.toast("Copied!");
     }
   }
 
   private deleteEditorSelection(): void {
     if (this.editorSession?.deleteSelected() === true) {
       this.refreshEditorDocument(true);
-      this.ui.toast("Object deleted. Undo is available.");
+      this.ui.toast("Gone! Press UNDO to bring it back.");
     }
   }
 
@@ -2811,7 +2813,7 @@ export class GameApp {
     const normalizedTitle = title.trim() || "My Prefab";
     const prefabDocument = session.createSelectedPrefabDocument(normalizedTitle);
     if (prefabDocument === null) {
-      this.ui.toast("Select one or more objects to save as a prefab.");
+      this.ui.toast("Click the things you want to keep, then save them as a build.");
       return;
     }
     try {
@@ -2821,7 +2823,7 @@ export class GameApp {
         name.value = "";
       }
       await this.refreshEditorPrefabs();
-      this.ui.toast(`${normalizedTitle} saved. It is ready in My Prefabs.`);
+      this.ui.toast(`${normalizedTitle} saved! Find it in MY BUILDS.`);
     } catch (error) {
       this.ui.toast(`Prefab could not be saved: ${errorMessage(error)}`);
     }
@@ -2872,7 +2874,7 @@ export class GameApp {
         this.editorPreview?.hidePlacementGhost();
       }
       await this.refreshEditorPrefabs();
-      this.ui.toast("Prefab removed. Placed copies are unchanged.");
+      this.ui.toast("Build removed. Copies already on the map stay.");
     } catch (error) {
       this.ui.toast(`Prefab could not be removed: ${errorMessage(error)}`);
     }
@@ -2923,7 +2925,7 @@ export class GameApp {
 
   private assignEditorRecoveryPose(): void {
     if (this.editorSession?.assignSelectedRecoveryPose() !== true) {
-      this.ui.toast("Select one Recovery Volume and one Safe Recovery Pose.");
+      this.ui.toast("Click a RESPAWN ZONE, then Shift-click a RESPAWN SPOT.");
       return;
     }
     this.refreshEditorDocument(true);
@@ -2932,7 +2934,7 @@ export class GameApp {
 
   private clearEditorRecoveryPose(): void {
     if (this.editorSession?.clearSelectedRecoveryPose() !== true) {
-      this.ui.toast("Select a linked Recovery Volume first.");
+      this.ui.toast("Click a linked RESPAWN ZONE first.");
       return;
     }
     this.refreshEditorDocument(true);
@@ -2941,7 +2943,7 @@ export class GameApp {
 
   private linkEditorPortals(): void {
     if (this.editorSession?.linkSelectedPortals() !== true) {
-      this.ui.toast("Select exactly two Portal objects. Shift-click adds the second one.");
+      this.ui.toast("Click one portal, then Shift-click another portal.");
       return;
     }
     this.refreshEditorDocument(true);
@@ -2964,7 +2966,7 @@ export class GameApp {
   ): void {
     const selection = this.editorInteractionSelection();
     if (selection === null) {
-      this.ui.toast("Select a source, then Shift-click a compatible target.");
+      this.ui.toast("Click the thing that starts it, then Shift-click the thing it changes.");
       return;
     }
     const added = this.editorSession?.addInteractionLink({
@@ -2975,7 +2977,7 @@ export class GameApp {
       action,
     });
     if (added === null || added === undefined) {
-      this.ui.toast("That exact link already exists or is not safe.");
+      this.ui.toast("Those two are already linked that way.");
       return;
     }
     this.refreshEditorDocument(true);
@@ -3022,7 +3024,7 @@ export class GameApp {
   }): void {
     if (this.editorSession?.editRaceSetup(view) === true) {
       this.refreshEditorDocument(true);
-      this.ui.toast(view.mode === "free-roam" ? "Free-roam mode selected." : "Race setup updated.");
+      this.ui.toast(view.mode === "free-roam" ? "Just drive: no race rules." : "Race on!");
     }
   }
 
@@ -3931,31 +3933,31 @@ export class GameApp {
     const steps = [
       {
         instruction: "Move the camera.",
-        detail: "Right-drag to orbit or middle-drag to pan.",
+        detail: "Hold the right mouse button and drag to look around.",
       },
       {
         instruction: "Draw a road.",
-        detail: "Choose TRACK, then press and drag a short road.",
+        detail: "Press ROAD at the top, then click and drag on the ground.",
       },
       {
         instruction: "Scroll to make it wider.",
-        detail: "Keep TRACK selected and roll the mouse wheel.",
+        detail: "Keep ROAD on and roll the mouse wheel.",
       },
       {
         instruction: "Add a ramp.",
-        detail: "Choose RAMP and click beside your road.",
+        detail: "Pick RAMP from the ROADS tab and click next to your road.",
       },
       {
         instruction: "Paint some walls.",
-        detail: "Select the road, choose PAINT WALLS, then drag on it.",
+        detail: "Click your road, pick a side under PAINT WALLS, then drag along it.",
       },
       {
         instruction: "Place a start and finish.",
-        detail: "Add START GRID and FINISH GATE so racers know where to go.",
+        detail: "From the RACE tab, add a START LINE and a FINISH.",
       },
       {
-        instruction: "Test-drive your track!",
-        detail: "Press TEST and drive. Your edit map stays safe.",
+        instruction: "Drive it!",
+        detail: "Press PLAY to drive. Press Esc to come back and keep building.",
       },
     ] as const;
     const step = steps[this.editorTutorialStep - 1];

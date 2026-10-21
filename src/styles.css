@@ -2279,3 +2279,204 @@ button.mode-card:not(:disabled):hover {
   padding: 0.4rem;
   cursor: pointer;
 }
+
+/* Easy mode: the default creator for first-timers. Expert panels and number boxes
+   tuck away; the PRO switch brings back the full editor. */
+#screen-editor[data-editor-level="easy"]
+  :is(
+    .editor-snap-controls,
+    .editor-tray > .editor-phase-note,
+    .editor-asset-card small,
+    .editor-zoom-control,
+    .editor-viewport-chrome > span[aria-hidden="true"],
+    .editor-statusbar > span:first-child,
+    #editor-track-panel > .editor-transform-grid,
+    #editor-select-track-range-button,
+    #editor-track-range-panel,
+    #editor-track-node-panel,
+    #editor-track-panel > .editor-phase-note,
+    #editor-smooth-track-button,
+    #editor-selection-panel > .editor-transform-grid,
+    #editor-frame-selection-button,
+    #editor-physics-panel,
+    #editor-motion-panel,
+    #editor-boost-panel,
+    #editor-surface-pad-panel,
+    #editor-route-panel,
+    #editor-recovery-link-panel,
+    label[for="editor-interaction-condition"],
+    .editor-environment-panel,
+    .editor-race-setup-panel,
+    .editor-facts,
+    .editor-map-tags,
+    #editor-group-button,
+    #editor-ungroup-button,
+    #editor-frame-multi-button,
+    .editor-transform-controls [data-editor-transform],
+    #editor-selection-panel .editor-selection-actions,
+    #editor-prefab-save-panel
+  ) {
+  display: none !important;
+}
+
+#screen-editor[data-editor-level="pro"] .easy-only {
+  display: none !important;
+}
+
+#screen-editor[data-editor-level="easy"] .editor-asset-card {
+  min-height: 92px;
+}
+
+#screen-editor[data-editor-level="easy"] .editor-asset-card span {
+  font-size: 1.9rem;
+}
+
+#editor-level-button.is-active {
+  color: var(--ink);
+  background: var(--orange);
+}
+
+.easy-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 8px 0 14px;
+}
+
+.easy-choice-grid--two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.easy-choice-grid--four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.easy-choice-grid button,
+.easy-stepper button {
+  display: grid;
+  min-width: 0;
+  min-height: 56px;
+  place-items: center;
+  gap: 2px;
+  border: 2px solid var(--line);
+  color: var(--ink);
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.62rem;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+}
+
+.easy-choice-grid button span {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.easy-choice-grid button:hover,
+.easy-stepper button:hover {
+  border-color: var(--cyan);
+}
+
+.easy-choice-grid button.is-active {
+  border-color: var(--ink);
+  color: #fff;
+  background: var(--ink);
+}
+
+.easy-stepper {
+  display: grid;
+  grid-template-columns: 1fr 56px 56px 56px;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 0.7rem;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+}
+
+.easy-stepper button {
+  font-size: 1.5rem;
+}
+
+.easy-stepper output {
+  font-size: 1.6rem;
+  font-weight: 1000;
+  text-align: center;
+}
+
+.easy-stepper[hidden] {
+  display: none;
+}
+
+.editor-action-bar {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  background: rgb(234 240 244 / 94%);
+  box-shadow: 0 10px 28px rgb(21 38 56 / 22%);
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
+.editor-action-bar[hidden] {
+  display: none;
+}
+
+.editor-action-bar button {
+  display: grid;
+  min-width: 64px;
+  min-height: 56px;
+  place-items: center;
+  gap: 2px;
+  border: 0;
+  color: #fff;
+  background: var(--ink);
+  cursor: pointer;
+  font-size: 0.58rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+}
+
+.editor-action-bar button span {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.editor-action-bar button:hover:not(:disabled) {
+  background: #1f3c58;
+}
+
+.editor-action-bar button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.editor-action-bar .editor-action-bar__bin {
+  background: #a3262f;
+}
+
+/* First-timer hint: ROAD and PLAY glow a few times when Easy mode opens. */
+@keyframes easy-hint-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(46 214 92 / 0%);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgb(46 214 92 / 65%);
+  }
+}
+
+#screen-editor[data-editor-level="easy"]:not([hidden])
+  :is(#editor-draw-road-button, #editor-test-button) {
+  animation: easy-hint-glow 1.4s ease-in-out 4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #screen-editor[data-editor-level="easy"]:not([hidden])
+    :is(#editor-draw-road-button, #editor-test-button) {
+    animation: none;
+  }
+}

@@ -176,7 +176,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "floor.rounded",
-    name: "Rounded Platform",
+    name: "Round Floor",
     category: "floors",
     searchTerms: ["rounded", "soft", "platform", "floor", "rectangle"],
     icon: "▰",
@@ -194,7 +194,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "floor.polygon",
-    name: "Polygon Platform",
+    name: "Shape Floor",
     category: "floors",
     searchTerms: ["polygon", "hexagon", "regular", "platform", "floor"],
     icon: "⬡",
@@ -212,7 +212,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "floor.freeform",
-    name: "Freeform Floor",
+    name: "Draw Floor",
     category: "floors",
     searchTerms: ["freeform", "custom", "draw", "outline", "floor", "platform"],
     icon: "~",
@@ -230,7 +230,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "floor.void-base",
-    name: "Void Base",
+    name: "Sky Island",
     category: "floors",
     searchTerms: ["void", "base", "island", "foundation", "floor", "platform"],
     icon: "◇",
@@ -266,7 +266,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "shape.column",
-    name: "Column",
+    name: "Tower",
     category: "floors",
     searchTerms: ["column", "pillar", "cylinder", "support", "tower"],
     icon: "●",
@@ -284,7 +284,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "physics.ball",
-    name: "Physics Ball",
+    name: "Ball",
     category: "physics",
     searchTerms: ["physics", "ball", "sphere", "rolling", "dynamic", "toy"],
     icon: "●",
@@ -302,7 +302,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "physics.cube",
-    name: "Physics Cube",
+    name: "Box",
     category: "physics",
     searchTerms: ["physics", "cube", "box", "push", "dynamic", "toy"],
     icon: "◆",
@@ -320,7 +320,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "physics.domino",
-    name: "Physics Domino",
+    name: "Domino",
     category: "physics",
     searchTerms: ["physics", "domino", "obstacle", "knock", "dynamic", "toy"],
     icon: "▮",
@@ -338,7 +338,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "motion.moving-platform",
-    name: "Moving Platform",
+    name: "Lift",
     category: "physics",
     searchTerms: ["moving", "platform", "lift", "elevator", "shuttle", "motion"],
     icon: "↕",
@@ -357,7 +357,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "motion.rotating-bar",
-    name: "Rotating Bar",
+    name: "Spinner",
     category: "physics",
     searchTerms: ["rotating", "bar", "spinner", "sweeper", "obstacle", "motion"],
     icon: "↻",
@@ -376,7 +376,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "motion.door",
-    name: "Moving Door",
+    name: "Door",
     category: "physics",
     searchTerms: ["door", "gate", "moving", "lift", "interaction", "motion"],
     icon: "▥",
@@ -395,7 +395,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "interaction.button",
-    name: "Big Button",
+    name: "Button",
     category: "interaction",
     searchTerms: ["button", "press", "switch", "trigger", "interaction"],
     icon: "●",
@@ -415,7 +415,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "interaction.pressure-plate",
-    name: "Pressure Plate",
+    name: "Step Pad",
     category: "interaction",
     searchTerms: ["pressure", "plate", "occupied", "released", "interaction"],
     icon: "▰",
@@ -435,7 +435,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "interaction.trigger-zone",
-    name: "Trigger Zone",
+    name: "Magic Zone",
     category: "interaction",
     searchTerms: ["trigger", "zone", "volume", "entered", "exited", "interaction"],
     icon: "□",
@@ -575,7 +575,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "travel.direction-arrow",
-    name: "Direction Arrow",
+    name: "Floor Arrow",
     category: "travel",
     searchTerms: ["direction", "arrow", "guide", "turn", "route", "travel"],
     icon: "➜",
@@ -613,7 +613,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "decoration.arrow-sign",
-    name: "Arrow Sign",
+    name: "Sign",
     category: "decoration",
     searchTerms: ["sign", "arrow", "direction", "decoration", "guide", "road"],
     icon: "➟",
@@ -631,7 +631,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "decoration.point-light",
-    name: "Point Light",
+    name: "Lamp",
     category: "decoration",
     searchTerms: ["light", "lamp", "glow", "color", "decoration", "night"],
     icon: "✦",
@@ -651,7 +651,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "decoration.color-strip",
-    name: "Color Strip",
+    name: "Glow Strip",
     category: "decoration",
     searchTerms: ["color", "strip", "glow", "neon", "line", "decoration"],
     icon: "▬",
@@ -671,7 +671,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "decoration.sculpture",
-    name: "Toy Sculpture",
+    name: "Statue",
     category: "decoration",
     searchTerms: ["sculpture", "statue", "prop", "themed", "decoration", "toy"],
     icon: "◆",
@@ -689,7 +689,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "decoration.effect-emitter",
-    name: "Effect Emitter",
+    name: "Confetti",
     category: "decoration",
     searchTerms: ["effect", "particles", "spark", "confetti", "emitter", "decoration"],
     icon: "✦",
@@ -709,7 +709,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "track.modular-straight",
-    name: "Road Straight",
+    name: "Straight Road",
     category: "track",
     searchTerms: ["road", "track", "straight", "modular", "deck", "section"],
     icon: "═",
@@ -727,7 +727,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "track.modular-corner",
-    name: "Road Corner",
+    name: "Curved Road",
     category: "track",
     searchTerms: ["road", "track", "corner", "turn", "curve", "modular"],
     icon: "⌝",
@@ -745,7 +745,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "track.bridge",
-    name: "Bridge Deck",
+    name: "Bridge",
     category: "track",
     searchTerms: ["bridge", "deck", "road", "track", "elevated", "overpass"],
     icon: "▰",
@@ -763,7 +763,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "track.guard-rail",
-    name: "Guard Rail",
+    name: "Rail",
     category: "track",
     searchTerms: ["guard", "rail", "barrier", "boundary", "road", "track"],
     icon: "━",
@@ -781,7 +781,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "track.overpass-support",
-    name: "Overpass Support",
+    name: "Pillar",
     category: "track",
     searchTerms: ["overpass", "support", "bridge", "pillar", "pier", "structure"],
     icon: "Π",
@@ -799,7 +799,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "track.tunnel",
-    name: "Drive-Through Tunnel",
+    name: "Tunnel",
     category: "track",
     searchTerms: ["tunnel", "drive", "through", "roof", "covered", "track"],
     icon: "∩",
@@ -817,7 +817,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "track.barrier",
-    name: "Barrier",
+    name: "Wall",
     category: "track",
     searchTerms: ["barrier", "wall", "rail", "boundary", "fence"],
     icon: "▬",
@@ -871,7 +871,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "race.start-grid",
-    name: "Start Grid",
+    name: "Start Line",
     category: "race",
     searchTerms: ["start", "grid", "spawn", "players", "race"],
     icon: "⌁",
@@ -889,7 +889,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "race.player-spawn",
-    name: "Player Spawn",
+    name: "Start Spot",
     category: "race",
     searchTerms: ["player", "spawn", "start", "slot", "grid", "race"],
     icon: "▲",
@@ -925,7 +925,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "race.finish-gate",
-    name: "Finish Gate",
+    name: "Finish",
     category: "race",
     searchTerms: ["finish", "gate", "goal", "race", "lap", "end"],
     icon: "⚑",
@@ -943,7 +943,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "race.recovery-volume",
-    name: "Recovery Volume",
+    name: "Respawn Zone",
     category: "race",
     searchTerms: ["recovery", "reset", "rescue", "volume", "safe", "race"],
     icon: "↻",
@@ -961,7 +961,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "race.shortcut-marker",
-    name: "Shortcut Marker",
+    name: "Shortcut",
     category: "race",
     searchTerms: ["shortcut", "alternate", "branch", "secret", "route", "race"],
     icon: "S",
@@ -979,7 +979,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "race.recovery-pose",
-    name: "Safe Recovery Pose",
+    name: "Respawn Spot",
     category: "race",
     searchTerms: ["safe", "recovery", "pose", "respawn", "reset", "heading", "race"],
     icon: "R",
@@ -997,7 +997,7 @@ const MANIFESTS: readonly EditorAssetManifest[] = Object.freeze([
   }),
   manifest({
     id: "race.out-of-bounds-volume",
-    name: "Out-of-Bounds Volume",
+    name: "Fall Zone",
     category: "race",
     searchTerms: ["out", "bounds", "fall", "reset", "volume", "race"],
     icon: "!",

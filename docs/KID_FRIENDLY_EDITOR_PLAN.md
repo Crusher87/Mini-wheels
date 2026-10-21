@@ -106,3 +106,11 @@ picture and name are enough.
 - No expert word from the list appears in Easy mode.
 - Format, lint, typecheck, unit tests and the browser suite pass; new Easy-mode tests
   pass; the change is on GitHub.
+
+## Progress
+
+- 2026-10-21: steps 1–5 built. Easy mode is the default with a PRO switch; the word
+  list is applied to tiles, headings, messages and the tutorial; the action bar, simple
+  world/race panels and the first-run glow are in. Easy hides the move/spin/size tool
+  buttons, duplicate/delete buttons and build saving, because the action bar covers them.
+  Next: the owner's play-test with a young player.
