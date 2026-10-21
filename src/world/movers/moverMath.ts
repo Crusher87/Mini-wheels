@@ -117,6 +117,30 @@ export function writePlatformPositionAtTime(
   return "hold-at-a";
 }
 
+/**
+ * Converts an automatic-cycle timestamp into one-way progress from A toward B,
+ * in [0, travel seconds], so manual open/close/stop can continue from the same spot.
+ */
+export function platformProgressAtTime(
+  source: MovingPlatformSource,
+  simulationTimeSeconds: number,
+): number {
+  assertSimulationTime(simulationTimeSeconds);
+  const travelSeconds = authoredTravelSeconds(source);
+  const cycleTime = positiveModulo(simulationTimeSeconds, platformCycleSeconds(source));
+  const returnStart = travelSeconds + source.endpointHoldSeconds;
+  if (cycleTime < travelSeconds) {
+    return cycleTime;
+  }
+  if (cycleTime < returnStart) {
+    return travelSeconds;
+  }
+  if (cycleTime < returnStart + travelSeconds) {
+    return travelSeconds - (cycleTime - returnStart);
+  }
+  return 0;
+}
+
 function assertSimulationTime(simulationTimeSeconds: number): void {
   if (!Number.isFinite(simulationTimeSeconds) || simulationTimeSeconds < 0) {
     throw new RangeError("Simulation time must be finite and non-negative.");

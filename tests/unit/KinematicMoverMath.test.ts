@@ -3,6 +3,7 @@ import { FixedStepLoop } from "../../src/app/FixedStepLoop";
 import { SANDBOX_MOVER_SOURCE_REFERENCE } from "../../src/config/sandbox-movers";
 import {
   platformCycleSeconds,
+  platformProgressAtTime,
   platformTravelSeconds,
   rotatingBarYawAtTime,
   writePlatformPositionAtTime,
@@ -131,3 +132,22 @@ describe.each([60, 120, 144])("%i Hz render cadence", (renderRate) => {
 function toDegrees(radians: number): number {
   return radians * (180 / Math.PI);
 }
+
+describe("manual platform progress", () => {
+  it("matches the automatic cycle position at every phase", () => {
+    const cycle = platformCycleSeconds(HORIZONTAL_SHUTTLE);
+    for (let step = 0; step < 40; step += 1) {
+      const time = (cycle * step) / 40;
+      const automatic = { x: 0, y: 0, z: 0 };
+      const manual = { x: 0, y: 0, z: 0 };
+      writePlatformPositionAtTime(HORIZONTAL_SHUTTLE, time, automatic);
+      const progress = platformProgressAtTime(HORIZONTAL_SHUTTLE, time);
+      expect(progress).toBeGreaterThanOrEqual(0);
+      expect(progress).toBeLessThanOrEqual(HORIZONTAL_SHUTTLE.authoredOneWayTravelSeconds);
+      writePlatformPositionAtTime(HORIZONTAL_SHUTTLE, progress, manual);
+      expect(manual.x).toBeCloseTo(automatic.x, 9);
+      expect(manual.y).toBeCloseTo(automatic.y, 9);
+      expect(manual.z).toBeCloseTo(automatic.z, 9);
+    }
+  });
+});

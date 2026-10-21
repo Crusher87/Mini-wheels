@@ -197,7 +197,10 @@ export class AuthoredMapArena implements WorldArena {
     for (const runtime of this.dynamicRuntimes) {
       runtime.binding.captureAfterFixedStep();
       const position = runtime.body.translation();
-      if (position.y < -25 || !Number.isFinite(position.x + position.y + position.z)) {
+      if (
+        position.y < this.blueprint.environment.outOfBoundsHeight ||
+        !Number.isFinite(position.x + position.y + position.z)
+      ) {
         runtime.body.setTranslation(runtime.initialPosition, false);
         runtime.body.setRotation(runtime.initialRotation, false);
         runtime.body.setLinvel({ x: 0, y: 0, z: 0 }, false);

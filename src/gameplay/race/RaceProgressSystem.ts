@@ -175,7 +175,10 @@ export class RaceProgressSystem {
       player.wrongDirectionCount += 1;
       return this.recordOutcome(player, "wrong-direction");
     }
-    if (![...this.requiredGroupIds].every((groupId) => player.completedGroupIds.has(groupId))) {
+    if (
+      this.race.finishRule === "required-group" &&
+      ![...this.requiredGroupIds].every((groupId) => player.completedGroupIds.has(groupId))
+    ) {
       player.invalidRouteCount += 1;
       return this.recordOutcome(player, "out-of-route");
     }

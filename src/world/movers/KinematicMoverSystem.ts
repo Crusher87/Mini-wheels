@@ -13,6 +13,7 @@ import type { RapierModule } from "../../physics/rapier-init";
 import { COLLISION_GROUPS } from "../../physics/CollisionGroups";
 import { PhysicsRenderBinding } from "../PhysicsRenderBinding";
 import {
+  platformProgressAtTime,
   rotatingBarYawAtTime,
   writePlatformPositionAtTime,
   type MutableVector3,
@@ -283,15 +284,17 @@ export class KinematicMoverSystem {
     if (platform === undefined) {
       return false;
     }
+    if (action !== "reset" && platform.controlMode === "automatic") {
+      // Manual modes measure progress from A to B, so continue from where the cycle is now.
+      platform.controlTimeSeconds = platformProgressAtTime(
+        platform.source,
+        this.currentSimulationTimeSeconds,
+      );
+    }
     if (action === "reset") {
       platform.controlTimeSeconds = 0;
       platform.controlMode = platform.source.initiallyStopped === true ? "stopped" : "automatic";
     } else if (action === "stop") {
-      if (platform.controlMode === "automatic") {
-        platform.controlTimeSeconds =
-          this.currentSimulationTimeSeconds %
-          (2 * (platform.source.authoredOneWayTravelSeconds + platform.source.endpointHoldSeconds));
-      }
       platform.controlMode = "stopped";
     } else if (action === "open" || action === "start") {
       platform.controlMode = platform.source.initiallyStopped === true ? "opening" : "automatic";

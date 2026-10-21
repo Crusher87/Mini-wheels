@@ -333,7 +333,7 @@ export function createStarterMapDocument(
       checkpointGroups: Object.freeze([]),
       routeEdges: Object.freeze([]),
       finishEntityIds: Object.freeze([]),
-      finishRule: "any",
+      finishRule: "required-group",
       recovery: Object.freeze({
         delaySeconds: 0.75,
         penaltySeconds: 0,

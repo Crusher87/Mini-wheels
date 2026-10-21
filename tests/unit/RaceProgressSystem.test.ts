@@ -75,6 +75,13 @@ describe("RaceProgressSystem", () => {
     expect(progress.crossFinish(0, "finish", true)).toBe("finished");
   });
 
+  it("lets the any-gate finish rule finish without required checkpoints", () => {
+    const progress = new RaceProgressSystem(raceDefinition({ finishRule: "any" }), 1);
+    startRace(progress);
+
+    expect(progress.crossFinish(0, "finish", true)).toBe("finished");
+  });
+
   it("tracks elapsed time and finish order independently per player", () => {
     const progress = new RaceProgressSystem(
       raceDefinition({ checkpointGroups: [], routeEdges: [] }),

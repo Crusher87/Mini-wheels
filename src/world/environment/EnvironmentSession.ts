@@ -17,6 +17,21 @@ import type { MapDocument } from "../../maps/MapDocument";
 import { COLLISION_GROUPS } from "../../physics/CollisionGroups";
 import type { RapierModule } from "../../physics/rapier-init";
 
+/** Distance of the default key light; keeps every authored direction inside the shadow camera. */
+const KEY_LIGHT_DISTANCE = Math.hypot(-26, 42, 18);
+
+/** Places a directional light along an authored direction at a shadow-safe distance. */
+export function placeKeyLight(
+  light: DirectionalLight,
+  direction: readonly [number, number, number],
+): void {
+  light.position.fromArray(direction);
+  if (light.position.lengthSq() < 1e-6) {
+    light.position.set(-26, 42, 18);
+  }
+  light.position.setLength(KEY_LIGHT_DISTANCE);
+}
+
 export interface EnvironmentDebugSnapshot {
   readonly groundMode: "ground" | "void";
   readonly skyPreset: MapDocument["environment"]["skyPreset"];
@@ -56,7 +71,7 @@ export class EnvironmentSession {
 
     const key = new DirectionalLight(environment.keyLight.color, environment.keyLight.intensity);
     key.name = "authored-key-light";
-    key.position.fromArray(environment.keyLight.direction);
+    placeKeyLight(key, environment.keyLight.direction);
     key.castShadow = true;
     key.shadow.mapSize.set(2048, 2048);
     key.shadow.camera.left = -45;

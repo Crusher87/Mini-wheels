@@ -2187,11 +2187,18 @@ export class GameApp {
     this.ui.show("loading");
     this.ui.setLoadingStatus("Building your test track…");
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-    this.worldSession?.dispose();
-    this.worldSession = this.createWorldSession(blueprint);
-    this.playtestBlueprint = blueprint;
-    this.normalMapPlay = false;
-    await renderSystem.precompile();
+    try {
+      this.worldSession?.dispose();
+      this.worldSession = this.createWorldSession(blueprint);
+      this.playtestBlueprint = blueprint;
+      this.normalMapPlay = false;
+      await renderSystem.precompile();
+    } catch (error) {
+      // The editor document is untouched, so go back to it instead of a dead end.
+      this.returnToEditor();
+      this.ui.toast(`Test drive could not start: ${errorMessage(error)}`);
+      return;
+    }
     this.sessionGeneration += 1;
     this.input.setGameplayEnabled(true);
     this.fixedStep.reset();
@@ -4071,12 +4078,17 @@ export class GameApp {
     this.ui.show("loading");
     this.ui.setLoadingStatus("Constructing sandbox…");
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-    this.worldSession?.dispose();
-    this.worldSession = this.createWorldSession();
-    this.playtestBlueprint = undefined;
-    this.normalMapPlay = false;
-    this.ui.setPlaytestPauseMode(false);
-    await this.renderSystem.precompile();
+    try {
+      this.worldSession?.dispose();
+      this.worldSession = this.createWorldSession();
+      this.playtestBlueprint = undefined;
+      this.normalMapPlay = false;
+      this.ui.setPlaytestPauseMode(false);
+      await this.renderSystem.precompile();
+    } catch (error) {
+      this.failLaunch(error);
+      return;
+    }
     this.sessionGeneration += 1;
     this.input.setGameplayEnabled(true);
     this.fixedStep.reset();
@@ -4145,8 +4157,13 @@ export class GameApp {
     this.worldSession?.dispose();
     this.worldSession = undefined;
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-    this.worldSession = this.createWorldSession(this.playtestBlueprint);
-    await this.renderSystem.precompile();
+    try {
+      this.worldSession = this.createWorldSession(this.playtestBlueprint);
+      await this.renderSystem.precompile();
+    } catch (error) {
+      this.failLaunch(error);
+      return;
+    }
     this.sessionGeneration += 1;
     this.fixedStep.reset();
     this.previousNow = performance.now();
@@ -4373,6 +4390,15 @@ export class GameApp {
     editorViewport.removeEventListener("pointerleave", this.onEditorPointerLeave);
     editorViewport.removeEventListener("wheel", this.onEditorWheel);
     editorViewport.removeEventListener("contextmenu", this.onEditorContextMenu);
+  }
+
+  /** Tears down a half-built world after a launch or reset throws, then shows the error screen. */
+  private failLaunch(error: unknown): void {
+    this.input.setGameplayEnabled(false);
+    this.audio.stopAllEngineVoices();
+    this.worldSession?.dispose();
+    this.worldSession = undefined;
+    this.fail(error);
   }
 
   private fail(error: unknown): void {

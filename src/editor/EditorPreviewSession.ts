@@ -48,6 +48,7 @@ import type {
   Vector3Tuple,
 } from "../maps/MapDocument";
 import { createTrackPatternTexture, trackMaterialAppearance } from "../tracks/TrackAppearance";
+import { placeKeyLight } from "../world/environment/EnvironmentSession";
 import {
   WEDGE_INDICES,
   editorAssetDimensions,
@@ -233,7 +234,7 @@ export class EditorPreviewSession {
     if (sun instanceof DirectionalLight) {
       sun.color.set(document.environment.keyLight.color);
       sun.intensity = document.environment.keyLight.intensity;
-      sun.position.fromArray(document.environment.keyLight.direction);
+      placeKeyLight(sun, document.environment.keyLight.direction);
     }
     const previousEntities = new Map(
       this.previousDocument?.entities.map((entity) => [entity.id, entity]) ?? [],
