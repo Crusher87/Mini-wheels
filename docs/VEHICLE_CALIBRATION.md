@@ -1,8 +1,8 @@
 # Vehicle calibration
 
-Status date: 2026-07-28 (America/Vancouver)  
+Status date: 2026-07-30 (America/Vancouver)
 Canonical source: GDD Sections 5, 11 and 19.1  
-Acceptance IDs: `VEH-001`–`VEH-012`  
+Acceptance IDs: `VEH-001`–`VEH-013`
 Calibration status: `PARTIAL — CONFIGURATION AUDITED; HANDLING RUNS NOT RECORDED`
 
 The source reference and Rapier runtime mapping are intentionally separate.
@@ -11,18 +11,18 @@ matches the reference build.
 
 ## Current automated evidence
 
-`npm run test` passed 112/112 tests. Vehicle-specific coverage includes:
+`npm run test` passed 115/115 tests. Vehicle-specific coverage includes:
 
-- `tests/unit/VehicleConfiguration.test.ts`: protected values, 2,000/20,000
-  force mapping, mass-normalized suspension, braking/reverse logic and wrapped
+- `tests/unit/VehicleConfiguration.test.ts`: protected values, 2,000 source /
+  4,000 runtime / 20,000 opposing force mapping, suspension, braking logic and wrapped
   wheel interpolation;
 - `tests/unit/VehicleCalibrationHarness.test.ts`: deterministic input phases
   and stable JSON/CSV fields;
 - `tests/unit/AutomaticUprightRecovery.test.ts`: optional settled-inversion
   eligibility and collision/motion exclusions.
 
-`tests/browser/boot.spec.ts` verifies live acceleration, 35° steering, hard
-braking, exact fall recovery, and ramp launch on Chromium, Firefox, and WebKit.
+`tests/browser/boot.spec.ts` verifies live acceleration, steering, hard
+braking, service braking, spark drift, exact fall recovery, and ramp launch.
 `tests/browser/sandbox.spec.ts` verifies platform passenger contact and
 legacy-speed rotating-bar momentum on all three engines. These checks are not a
 substitute for the full calibration protocols below.
@@ -86,29 +86,36 @@ The procedural visual/collision target is approximately 0.7 wide, 0.4 high and
 
 ## Implemented Rapier mapping
 
-| Runtime field                          |                      Value | Derivation / status                          |
-| -------------------------------------- | -------------------------: | -------------------------------------------- |
-| Chassis mass                           |                      1,500 | Direct, unit-audited                         |
-| Linear / angular damping               |                   0 / 0.05 | Direct                                       |
-| Gravity scale                          |                          1 | World gravity `(0,-9.81,0)`                  |
-| Chassis CCD                            |                    Enabled | Source continuity retained                   |
-| Center of mass                         |          `(0,-0.125,+0.1)` | Direct                                       |
-| Principal angular inertia              |     `(231.25,272.5,81.25)` | `DECISION`, initial 0.7 × 0.4 × 1.3 estimate |
-| Up / forward axes                      |      Y index 1 / Z index 2 | Project convention                           |
-| Suspension direction / axle            |     `(0,-1,0)` / `(1,0,0)` | Chassis-local                                |
-| Rest length / max travel               |                0.15 / 0.15 | Half of the source 0.3 travel                |
-| Source stiffness retained              |                     35,000 | Immutable audit field                        |
-| Rapier stiffness coefficient           | `35,000 / 1,500 = 23.333…` | Mass-normalized; see DEV-001                 |
-| Source compression/relaxation retained |              1,500 / 1,500 | Immutable audit fields                       |
-| Rapier compression/relaxation          |                      1 / 1 | Mass-normalized; see DEV-001                 |
-| Maximum suspension force               |                    100,000 | Initial runtime cap, calibration pending     |
-| Friction slip                          |                        1.0 | Initial longitudinal approximation           |
-| Side friction stiffness                |                        1.8 | Direct initial mapping                       |
-| Ordinary front engine force            |           ±2,000 per wheel | `400 / 0.2`                                  |
-| Opposing front engine force            |    Up to ±20,000 per wheel | `400 × 10 / 0.2`                             |
-| Front steering                         |           ±0.610865238 rad | 35°                                          |
-| Rear engine force / steering           |                      0 / 0 | Passive rear axle                            |
-| Fixed step                             |                     0.02 s | Protected 50 Hz simulation                   |
+| Runtime field                          |                      Value | Derivation / status                           |
+| -------------------------------------- | -------------------------: | --------------------------------------------- |
+| Chassis mass                           |                      1,500 | Direct, unit-audited                          |
+| Linear / angular damping               |                   0 / 0.05 | Direct                                        |
+| Gravity scale                          |                          1 | World gravity `(0,-9.81,0)`                   |
+| Chassis CCD                            |                    Enabled | Source continuity retained                    |
+| Center of mass                         |          `(0,-0.125,+0.1)` | Direct                                        |
+| Principal angular inertia              |     `(231.25,272.5,81.25)` | `DECISION`, initial 0.7 × 0.4 × 1.3 estimate  |
+| Up / forward axes                      |      Y index 1 / Z index 2 | Project convention                            |
+| Suspension direction / axle            |     `(0,-1,0)` / `(1,0,0)` | Chassis-local                                 |
+| Rest length / max travel               |                0.15 / 0.15 | Half of the source 0.3 travel                 |
+| Source stiffness retained              |                     35,000 | Immutable audit field                         |
+| Rapier stiffness coefficient           | `35,000 / 1,500 = 23.333…` | Mass-normalized; see DEV-001                  |
+| Source compression/relaxation retained |              1,500 / 1,500 | Immutable audit fields                        |
+| Rapier compression/relaxation          |                      1 / 1 | Mass-normalized; see DEV-001                  |
+| Maximum suspension force               |                    100,000 | Initial runtime cap, calibration pending      |
+| Friction slip                          |                        1.0 | Initial longitudinal approximation            |
+| Source side friction stiffness         |                        1.8 | Immutable audit target                        |
+| Runtime side friction stiffness        |                        1.2 | Arcade momentum profile; see DEV-009          |
+| Source-equivalent front engine force   |           ±2,000 per wheel | `400 / 0.2`                                   |
+| Ordinary front engine force            |           ±4,000 per wheel | 2× arcade acceleration; see DEV-009           |
+| Full-steer front engine force          |           ±8,000 per wheel | Linear steering boost; see DEV-009            |
+| Opposing front engine force            |    Up to ±20,000 per wheel | `400 × 10 / 0.2`                              |
+| Front steering                         | ±0.610865238 to ±0.2138028 | 35° below 2 m/s, scaling to 35% by 8 m/s      |
+| Service brake                          |           12,000 per wheel | Brake held without drift steering             |
+| Drift rear brake / side stiffness      |                 100 / 0.45 | Grounded rear-slip profile; see DEV-010       |
+| Drift steering / drive assist          |              1.55× / 1.35× | Retains control through the slide             |
+| Drift entry-momentum floor             |                        82% | Horizontal momentum floor while drift is held |
+| Rear engine force / steering           |                      0 / 0 | Passive rear axle                             |
+| Fixed step                             |                     0.02 s | Protected 50 Hz simulation                    |
 
 Rapier ray-cast wheels are not separate rigid bodies. Source wheel mass, wheel
 damping and the two-piece Unity friction curves therefore remain calibration
@@ -140,15 +147,15 @@ vehicle-force rewrite and is recorded as DEV-007.
 
 1. Cache logical axes from the rendered frame.
 2. Derive front-wheel/chassis longitudinal direction.
-3. Select ordinary or opposing force.
-4. Apply force and steering to the two front ray-cast wheels; keep the rear
-   axle passive.
+3. Select ordinary or opposing force and resolve service-brake/drift state.
+4. Apply force and steering to the front ray-cast wheels; while drifting,
+   loosen and lightly brake the rear wheels and retain the configured momentum floor.
 5. Update the vehicle for exactly 0.02 seconds and step Rapier.
 6. Capture previous/current chassis and wheel state.
 7. Interpolate presentation state for the render frame.
 
 Opposing 20,000 force applies only while requested direction and motion oppose.
-After the direction crosses zero, ordinary 2,000-scale reverse force resumes.
+After the direction crosses zero, ordinary 4,000-scale reverse force resumes.
 
 ## Calibration environment
 
@@ -208,6 +215,7 @@ visual equivalence.
 | VEH-010 | `NOT RUN` | 60/120/144 trajectory comparison absent                      |
 | VEH-011 | `NOT RUN` | High-refresh interpolation review absent                     |
 | VEH-012 | `NOT RUN` | No versioned handling result set                             |
+| VEH-013 | `PASS`    | Chromium service-brake, drift, yaw, speed and spark evidence |
 
 ## Tuning procedure
 

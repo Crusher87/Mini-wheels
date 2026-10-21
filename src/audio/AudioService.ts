@@ -10,6 +10,7 @@ export type ProceduralAudioCue =
   "ui-focus" | "ui-confirm" | "ui-back" | "pause" | "booster" | "portal" | "reset" | "respawn";
 export type PortalCuePhase = "entry" | "exit";
 export type EngineVoiceId = number | string;
+export type MapMusicPreset = "music.arcade" | "music.cruise" | "music.starlight";
 
 /**
  * The service uses this deliberately small project-owned Web Audio boundary so
@@ -92,6 +93,7 @@ export interface AudioServiceDebugSnapshot {
   readonly busNodeCount: number;
   readonly activeCueVoiceCount: number;
   readonly activeEngineVoiceCount: number;
+  readonly activeMusicVoiceCount: number;
   readonly liveOscillatorNodeCount: number;
   readonly liveManagedNodeCount: number;
   readonly cueStartedCount: number;
@@ -138,6 +140,11 @@ interface ManagedEngineVoice {
   readonly panner: StereoPannerNodePort | undefined;
   throttle: number;
   cleaned: boolean;
+}
+
+interface ManagedMusicVoice {
+  readonly oscillators: readonly OscillatorNodePort[];
+  readonly gains: readonly GainNodePort[];
 }
 
 const DEFAULT_VOLUMES: AudioVolumeSettings = Object.freeze({
@@ -264,6 +271,9 @@ export class AudioService {
   private readonly cueVoices = new Set<ManagedCueVoice>();
   private readonly engineVoices = new Map<EngineVoiceId, ManagedEngineVoice>();
   private readonly liveEngineNodes = new Set<ManagedEngineVoice>();
+  private musicVoice: ManagedMusicVoice | undefined;
+  private requestedMusic: MapMusicPreset | null = null;
+  private requestedMusicVolume = 0.7;
   private availability: AudioServiceAvailability = "unknown";
   private unlocked = false;
   private gameplayPaused = false;
@@ -326,6 +336,9 @@ export class AudioService {
         await this.context.resume();
       }
       this.unlocked = this.context.state === "running";
+      if (this.unlocked && this.requestedMusic !== null) {
+        this.startRequestedMusic();
+      }
       return this.unlocked;
     } catch {
       this.unlocked = false;
@@ -661,13 +674,24 @@ export class AudioService {
     }
   }
 
+  /** Plays one bounded, project-owned procedural music bed through the music bus. */
+  public setMapMusic(preset: MapMusicPreset | null, volume = 0.7): boolean {
+    this.requestedMusic = preset;
+    this.requestedMusicVolume = clampUnit(volume, 0.7);
+    this.stopMapMusicVoice();
+    return preset === null || this.startRequestedMusic();
+  }
+
   public get isUnlocked(): boolean {
     return this.unlocked;
   }
 
   public debugSnapshot(): AudioServiceDebugSnapshot {
     this.pruneExpiredCueVoices();
-    const voiceNodeCount = (this.cueVoices.size + this.liveEngineNodes.size) * 2;
+    const musicOscillatorCount = this.musicVoice?.oscillators.length ?? 0;
+    const musicGainCount = this.musicVoice?.gains.length ?? 0;
+    const voiceNodeCount =
+      (this.cueVoices.size + this.liveEngineNodes.size) * 2 + musicOscillatorCount + musicGainCount;
     let pannerNodeCount = 0;
     for (const voice of this.cueVoices) {
       if (voice.panner !== undefined) {
@@ -690,7 +714,9 @@ export class AudioService {
       busNodeCount,
       activeCueVoiceCount: this.cueVoices.size,
       activeEngineVoiceCount: this.engineVoices.size,
-      liveOscillatorNodeCount: this.cueVoices.size + this.liveEngineNodes.size,
+      activeMusicVoiceCount: this.musicVoice === undefined ? 0 : 1,
+      liveOscillatorNodeCount:
+        this.cueVoices.size + this.liveEngineNodes.size + musicOscillatorCount,
       liveManagedNodeCount: busNodeCount + voiceNodeCount + pannerNodeCount,
       cueStartedCount: this.cueStartedCount,
       cueDroppedCount: this.cueDroppedCount,
@@ -720,6 +746,7 @@ export class AudioService {
       this.cleanupEngineVoice(voice);
     }
     this.engineVoices.clear();
+    this.stopMapMusicVoice();
 
     if (this.buses !== undefined) {
       this.safeDisconnect(this.buses.gameplay);
@@ -738,6 +765,81 @@ export class AudioService {
       } catch {
         // The app is already torn down; a browser close failure is non-fatal.
       }
+    }
+  }
+
+  private startRequestedMusic(): boolean {
+    const preset = this.requestedMusic;
+    const context = this.context;
+    const musicBus = this.buses?.music;
+    if (
+      preset === null ||
+      !this.unlocked ||
+      this.disposed ||
+      this.pageHidden ||
+      context?.state !== "running" ||
+      musicBus === undefined
+    ) {
+      return false;
+    }
+    const tones: Readonly<Record<MapMusicPreset, readonly [number, number, OscillatorType]>> = {
+      "music.arcade": [130.81, 261.63, "square"],
+      "music.cruise": [110, 164.81, "triangle"],
+      "music.starlight": [146.83, 220, "sine"],
+    };
+    const [lowFrequency, highFrequency, type] = tones[preset];
+    const oscillators: OscillatorNodePort[] = [];
+    const gains: GainNodePort[] = [];
+    try {
+      for (const [frequency, gainScale] of [
+        [lowFrequency, 0.035],
+        [highFrequency, 0.018],
+      ] as const) {
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        oscillator.type = type;
+        oscillator.frequency.setValueAtTime(frequency, context.currentTime);
+        oscillator.detune.setValueAtTime(preset === "music.arcade" ? -7 : 0, context.currentTime);
+        gain.gain.setValueAtTime(
+          Math.max(SILENT_GAIN, gainScale * this.requestedMusicVolume),
+          context.currentTime,
+        );
+        oscillator.connect(gain);
+        gain.connect(musicBus);
+        oscillator.start(context.currentTime);
+        oscillators.push(oscillator);
+        gains.push(gain);
+      }
+      this.musicVoice = Object.freeze({
+        oscillators: Object.freeze(oscillators),
+        gains: Object.freeze(gains),
+      });
+      return true;
+    } catch {
+      for (const oscillator of oscillators) {
+        this.safeStop(oscillator);
+        this.safeDisconnect(oscillator);
+      }
+      for (const gain of gains) {
+        this.safeDisconnect(gain);
+      }
+      return false;
+    }
+  }
+
+  private stopMapMusicVoice(): void {
+    const voice = this.musicVoice;
+    if (voice === undefined) {
+      return;
+    }
+    this.musicVoice = undefined;
+    for (const oscillator of voice.oscillators) {
+      oscillator.onended = null;
+      this.safeStop(oscillator);
+      this.safeDisconnect(oscillator);
+    }
+    for (const gain of voice.gains) {
+      this.safeDisconnect(gain);
     }
   }
 

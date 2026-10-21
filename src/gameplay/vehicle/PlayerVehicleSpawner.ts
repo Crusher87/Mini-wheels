@@ -41,8 +41,8 @@ function assertFiniteOrigin(origin: SpawnOrigin): void {
 /**
  * Calculates the exact Alpha ring transform for one zero-based player index.
  *
- * Vehicle geometry uses local -Z as forward. A positive Y-axis yaw equal to the
- * spawn angle therefore turns local -Z toward the ring center.
+ * Vehicle geometry uses local +Z as forward. Adding a half-turn to the radial
+ * spawn angle turns each visible nose toward the ring center.
  */
 export function calculatePlayerSpawnTransform(
   playerCount: number,
@@ -60,7 +60,8 @@ export function calculatePlayerSpawnTransform(
   const radius = playerCount / 2;
   const angleStepDegrees = Math.floor(360 / playerCount);
   const angleRadians = (angleStepDegrees * playerIndex + 1) * DEGREES_TO_RADIANS;
-  const halfAngle = angleRadians / 2;
+  const inwardYawRadians = angleRadians + Math.PI;
+  const halfAngle = inwardYawRadians / 2;
 
   return Object.freeze({
     position: Object.freeze({

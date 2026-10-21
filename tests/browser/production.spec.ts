@@ -27,9 +27,7 @@ test("PROD-001: optimized build boots Rapier without development instrumentation
 
   expect(wasmResponse.headers()["content-type"]).toContain("application/wasm");
   expect(
-    await page.evaluate(() =>
-      Object.prototype.hasOwnProperty.call(window, "__TINY_TRACTION_TEST__"),
-    ),
+    await page.evaluate(() => Object.prototype.hasOwnProperty.call(window, "__MINI_WHEELS_TEST__")),
   ).toBe(false);
 
   const scriptSource = await page.locator('script[type="module"]').getAttribute("src");
@@ -42,7 +40,7 @@ test("PROD-001: optimized build boots Rapier without development instrumentation
 
   const bundleResponse = await page.request.get(new URL(scriptSource ?? "", page.url()).href);
   expect(bundleResponse.ok()).toBe(true);
-  expect(await bundleResponse.text()).not.toContain("__TINY_TRACTION_TEST__");
+  expect(await bundleResponse.text()).not.toContain("__MINI_WHEELS_TEST__");
 
   await page.getByRole("button", { name: /start engine/i }).click();
   await expect(page.getByRole("navigation", { name: "Main menu" })).toBeVisible();

@@ -23,9 +23,9 @@ test("FLOW-006/008 and PERF-004: repeated full rebuilds retain one clean bounded
   await startSandbox(page);
 
   const initial = await page.evaluate(() => ({
-    app: window.__TINY_TRACTION_TEST__?.appSnapshot(),
-    world: window.__TINY_TRACTION_TEST__?.snapshot(),
-    audio: window.__TINY_TRACTION_TEST__?.audioSnapshot(),
+    app: window.__MINI_WHEELS_TEST__?.appSnapshot(),
+    world: window.__MINI_WHEELS_TEST__?.snapshot(),
+    audio: window.__MINI_WHEELS_TEST__?.audioSnapshot(),
   }));
   const audioAvailable = initial.audio?.availability === "available";
   const initialGeneration = initial.app?.sessionGeneration ?? 0;
@@ -41,23 +41,23 @@ test("FLOW-006/008 and PERF-004: repeated full rebuilds retain one clean bounded
     | undefined;
 
   await page.evaluate(() => {
-    window.__TINY_TRACTION_TEST__?.setCubeState(0, {
+    window.__MINI_WHEELS_TEST__?.setCubeState(0, {
       position: { x: 20, y: 6, z: 10 },
       linearVelocity: { x: 4, y: 3, z: 2 },
       angularVelocity: { x: 1, y: 2, z: 3 },
     });
-    window.__TINY_TRACTION_TEST__?.setBallState(0, {
+    window.__MINI_WHEELS_TEST__?.setBallState(0, {
       position: { x: -20, y: 8, z: 12 },
       linearVelocity: { x: -2, y: 1, z: 5 },
     });
   });
 
   for (let resetIndex = 1; resetIndex <= resetCount; resetIndex += 1) {
-    await page.evaluate(() => window.__TINY_TRACTION_TEST__?.resetSandbox());
+    await page.evaluate(() => window.__MINI_WHEELS_TEST__?.resetSandbox());
     await page.waitForFunction(
       (generation) =>
-        window.__TINY_TRACTION_TEST__?.appSnapshot().state === "playing" &&
-        window.__TINY_TRACTION_TEST__?.appSnapshot().sessionGeneration === generation,
+        window.__MINI_WHEELS_TEST__?.appSnapshot().state === "playing" &&
+        window.__MINI_WHEELS_TEST__?.appSnapshot().sessionGeneration === generation,
       initialGeneration + resetIndex,
     );
     await page.evaluate(
@@ -68,14 +68,14 @@ test("FLOW-006/008 and PERF-004: repeated full rebuilds retain one clean bounded
     );
     if (audioAvailable) {
       await page.waitForFunction(
-        () => (window.__TINY_TRACTION_TEST__?.audioSnapshot().activeEngineVoiceCount ?? 0) === 1,
+        () => (window.__MINI_WHEELS_TEST__?.audioSnapshot().activeEngineVoiceCount ?? 0) === 1,
       );
     }
     const state = await page.evaluate(() => ({
-      app: window.__TINY_TRACTION_TEST__?.appSnapshot(),
-      world: window.__TINY_TRACTION_TEST__?.snapshot(),
-      render: window.__TINY_TRACTION_TEST__?.renderSnapshot(),
-      audio: window.__TINY_TRACTION_TEST__?.audioSnapshot(),
+      app: window.__MINI_WHEELS_TEST__?.appSnapshot(),
+      world: window.__MINI_WHEELS_TEST__?.snapshot(),
+      render: window.__MINI_WHEELS_TEST__?.renderSnapshot(),
+      audio: window.__MINI_WHEELS_TEST__?.audioSnapshot(),
     }));
 
     expect(state.app).toMatchObject({
@@ -140,11 +140,11 @@ test("PERF-001/003/007: ten cars wake the instanced cube wall without invalid ph
 }) => {
   test.setTimeout(60_000);
   await startSandbox(page, 10);
-  await page.evaluate(() => window.__TINY_TRACTION_TEST__?.resetPerformance());
+  await page.evaluate(() => window.__MINI_WHEELS_TEST__?.resetPerformance());
 
   await page.evaluate(() => {
     for (let index = 0; index < 10; index += 1) {
-      window.__TINY_TRACTION_TEST__?.setVehicleState(index, {
+      window.__MINI_WHEELS_TEST__?.setVehicleState(index, {
         position: {
           x: -2 - index * 0.42,
           y: 0.65,
@@ -157,9 +157,9 @@ test("PERF-001/003/007: ten cars wake the instanced cube wall without invalid ph
   await page.waitForTimeout(2_500);
 
   const result = await page.evaluate(() => ({
-    world: window.__TINY_TRACTION_TEST__?.snapshot(),
-    performance: window.__TINY_TRACTION_TEST__?.performanceSnapshot(),
-    render: window.__TINY_TRACTION_TEST__?.renderSnapshot(),
+    world: window.__MINI_WHEELS_TEST__?.snapshot(),
+    performance: window.__MINI_WHEELS_TEST__?.performanceSnapshot(),
+    render: window.__MINI_WHEELS_TEST__?.renderSnapshot(),
   }));
   expect(result.world?.arena.cubeVisualBatchCount).toBe(1);
   expect(

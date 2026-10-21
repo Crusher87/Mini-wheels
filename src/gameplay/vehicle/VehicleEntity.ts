@@ -2,11 +2,16 @@ import type { Group } from "three";
 import type { World } from "@dimforge/rapier3d";
 import type { LogicalAxes } from "../../input/InputHub";
 import type { RapierModule } from "../../physics/rapier-init";
-import { VehiclePhysicsAdapter } from "../../physics/VehiclePhysicsAdapter";
+import {
+  VehiclePhysicsAdapter,
+  type AuthoredWallContact,
+} from "../../physics/VehiclePhysicsAdapter";
 import { PhysicsRenderBinding } from "../../world/PhysicsRenderBinding";
 import { VehicleView } from "./VehicleView";
 import type { PlayerRecord } from "../player/PlayerRoster";
 import type { PlayerSpawnTransform } from "./PlayerVehicleSpawner";
+import type { SurfaceContactFrame } from "./SurfaceContactSystem";
+import type { TrackSurface } from "../../maps/MapDocument";
 
 export interface VehicleTelemetry {
   readonly playerIndex: number;
@@ -25,16 +30,28 @@ export interface VehicleTelemetry {
     readonly y: number;
     readonly z: number;
   };
+  readonly upAxisY: number;
   readonly speed: number;
   readonly forwardSpeed: number;
   readonly wheelOmega: number;
   readonly engineForce: number;
   readonly steering: number;
   readonly hardBraking: boolean;
+  readonly braking: boolean;
+  readonly drifting: boolean;
   readonly recoveryCount: number;
   readonly automaticUprightRecoveryCount: number;
   readonly speedImmediatelyAfterRecovery: number;
+  readonly recoveryProtectionSeconds: number;
   readonly passengerSurfaceCorrectionCount: number;
+  readonly authoredWallStabilizationCount: number;
+  readonly authoredWallSeparationCount: number;
+  readonly jumpLandingAssistCount: number;
+  readonly airborneSeconds: number;
+  readonly authoredSurface: TrackSurface | null;
+  readonly authoredBoostCount: number;
+  readonly authoredBounceCount: number;
+  readonly authoredHazardCount: number;
   readonly lastPassengerSurfaceVelocity: {
     readonly x: number;
     readonly z: number;
@@ -45,6 +62,17 @@ export const AUTOMATIC_UPRIGHT_MINIMUM_SECONDS = 2;
 export const AUTOMATIC_UPRIGHT_MAXIMUM_SPEED = 0.15;
 export const AUTOMATIC_UPRIGHT_MAXIMUM_ANGULAR_SPEED = 0.5;
 export const AUTOMATIC_UPRIGHT_MAXIMUM_UP_AXIS_Y = -0.25;
+export const RECOVERY_COLLISION_PROTECTION_SECONDS = 1.25;
+
+export interface VehicleRecoveryPose {
+  readonly position: { readonly x: number; readonly y: number; readonly z: number };
+  readonly rotation: {
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+    readonly w: number;
+  };
+}
 
 export interface UprightRecoveryState {
   readonly rotation: {
@@ -74,6 +102,7 @@ export class VehicleEntity {
   private readonly renderBinding: PhysicsRenderBinding;
   private automaticUprightTimerSeconds = 0;
   private automaticUprightRecoveryCount = 0;
+  private recoveryProtectionSeconds = 0;
 
   public constructor(
     rapier: RapierModule,
@@ -90,16 +119,34 @@ export class VehicleEntity {
   }
 
   public prepareFixedStep(input: LogicalAxes, fixedDeltaSeconds: number): void {
+    this.advanceRecoveryProtection(fixedDeltaSeconds);
     this.renderBinding.beginFixedStep();
     this.physics.prepareFixedStep(input, fixedDeltaSeconds);
   }
 
-  public finishFixedStep(fixedDeltaSeconds: number, automaticUprightRecovery = false): boolean {
+  public applyAuthoredSurfaceContact(frame: SurfaceContactFrame, fixedDeltaSeconds: number): void {
+    this.physics.applyAuthoredSurfaceContact(frame, fixedDeltaSeconds);
+  }
+
+  public clearAuthoredSurfaceEffects(): void {
+    this.physics.clearAuthoredSurfaceEffects();
+  }
+
+  public finishFixedStep(
+    fixedDeltaSeconds: number,
+    automaticUprightRecovery = false,
+    recoveryPose: VehicleRecoveryPose | null = null,
+  ): boolean {
     this.physics.finishFixedStep(fixedDeltaSeconds);
     if (this.physics.needsRecovery()) {
-      this.physics.recover();
+      if (recoveryPose === null) {
+        this.physics.recover();
+      } else {
+        this.physics.recoverTo(recoveryPose.position, recoveryPose.rotation);
+      }
       this.renderBinding.teleportToBody();
       this.automaticUprightTimerSeconds = 0;
+      this.beginRecoveryProtection();
       return true;
     }
     if (automaticUprightRecovery && this.updateAutomaticUprightTimer(fixedDeltaSeconds)) {
@@ -107,6 +154,7 @@ export class VehicleEntity {
       this.renderBinding.teleportToBody();
       this.automaticUprightTimerSeconds = 0;
       this.automaticUprightRecoveryCount += 1;
+      this.beginRecoveryProtection();
       return true;
     }
     if (!automaticUprightRecovery) {
@@ -121,8 +169,27 @@ export class VehicleEntity {
     this.renderBinding.teleportToBody();
   }
 
+  public recoverTo(
+    position: { readonly x: number; readonly y: number; readonly z: number },
+    rotation: {
+      readonly x: number;
+      readonly y: number;
+      readonly z: number;
+      readonly w: number;
+    },
+  ): void {
+    this.physics.recoverTo(position, rotation);
+    this.renderBinding.teleportToBody();
+    this.automaticUprightTimerSeconds = 0;
+    this.beginRecoveryProtection();
+  }
+
   public get rigidBodyHandle(): number {
     return this.physics.body.handle;
+  }
+
+  public get recoveryCollisionProtectionSeconds(): number {
+    return this.recoveryProtectionSeconds;
   }
 
   public render(alpha: number): void {
@@ -130,10 +197,21 @@ export class VehicleEntity {
     this.view.renderWheels(this.physics, alpha);
   }
 
+  public resolveAuthoredWallContact(contact: AuthoredWallContact): void {
+    if (this.physics.resolveAuthoredWallContact(contact)) {
+      this.renderBinding.teleportToBody();
+    }
+  }
+
+  public assistJumpLanding(groundDistance: number | null): void {
+    this.physics.assistJumpLanding(groundDistance);
+  }
+
   public telemetry(): VehicleTelemetry {
     const position = this.physics.body.translation();
     const linearVelocity = this.physics.body.linvel();
     const angularVelocity = this.physics.body.angvel();
+    const rotation = this.physics.body.rotation();
     return {
       playerIndex: this.player.index,
       playerNumber: this.player.number,
@@ -151,16 +229,28 @@ export class VehicleEntity {
         y: angularVelocity.y,
         z: angularVelocity.z,
       },
+      upAxisY: 1 - 2 * (rotation.x ** 2 + rotation.z ** 2),
       speed: this.physics.speed,
       forwardSpeed: this.physics.forwardSpeed,
       wheelOmega: this.physics.wheelOmega,
       engineForce: this.physics.engineForce,
       steering: this.physics.steering,
       hardBraking: this.physics.isHardBraking,
+      braking: this.physics.isBraking,
+      drifting: this.physics.isDrifting,
       recoveryCount: this.physics.recoveryCount,
       automaticUprightRecoveryCount: this.automaticUprightRecoveryCount,
       speedImmediatelyAfterRecovery: this.physics.speedImmediatelyAfterRecovery,
+      recoveryProtectionSeconds: this.recoveryProtectionSeconds,
       passengerSurfaceCorrectionCount: this.physics.passengerSurfaceCorrectionCount,
+      authoredWallStabilizationCount: this.physics.authoredWallStabilizationCount,
+      authoredWallSeparationCount: this.physics.authoredWallSeparationCount,
+      jumpLandingAssistCount: this.physics.jumpLandingAssistCount,
+      airborneSeconds: this.physics.currentAirborneSeconds,
+      authoredSurface: this.physics.currentAuthoredSurface,
+      authoredBoostCount: this.physics.authoredBoostCount,
+      authoredBounceCount: this.physics.authoredBounceCount,
+      authoredHazardCount: this.physics.authoredHazardCount,
       lastPassengerSurfaceVelocity: this.physics.lastPassengerSurfaceVelocity,
     };
   }
@@ -182,5 +272,23 @@ export class VehicleEntity {
       ? this.automaticUprightTimerSeconds + fixedDeltaSeconds
       : 0;
     return this.automaticUprightTimerSeconds >= AUTOMATIC_UPRIGHT_MINIMUM_SECONDS;
+  }
+
+  private beginRecoveryProtection(): void {
+    this.recoveryProtectionSeconds = RECOVERY_COLLISION_PROTECTION_SECONDS;
+    this.physics.setRecoveryCollisionProtection(true);
+  }
+
+  private advanceRecoveryProtection(fixedDeltaSeconds: number): void {
+    if (this.recoveryProtectionSeconds <= 0) {
+      return;
+    }
+    this.recoveryProtectionSeconds = Math.max(
+      0,
+      this.recoveryProtectionSeconds - fixedDeltaSeconds,
+    );
+    if (this.recoveryProtectionSeconds <= 1e-9) {
+      this.physics.setRecoveryCollisionProtection(false);
+    }
   }
 }

@@ -41,6 +41,10 @@ export interface BoosterPadDefinition {
   readonly rotation: QuaternionLike;
   readonly halfExtents: Vector3Like;
   readonly deltaVelocity: Vector3Like;
+  readonly effect?: "boost" | "launch" | "bounce" | "slow";
+  readonly velocityMultiplier?: number;
+  readonly minimumVerticalSpeed?: number;
+  readonly cooldownSeconds?: number;
 }
 
 export interface PortalEndpointDefinition {

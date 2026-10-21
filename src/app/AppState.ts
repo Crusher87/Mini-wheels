@@ -2,6 +2,8 @@ export const AppState = {
   Boot: "boot",
   AwaitingActivation: "awaiting-activation",
   FrontEnd: "front-end",
+  MapLibrary: "map-library",
+  Editing: "editing",
   Loading: "loading",
   Playing: "playing",
   Paused: "paused",

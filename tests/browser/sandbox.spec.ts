@@ -13,7 +13,7 @@ test("MAP-001/002/004/005/006: the authored arena and movers build with exact co
   page,
 }) => {
   await startSandbox(page);
-  const snapshot = await page.evaluate(() => window.__TINY_TRACTION_TEST__?.snapshot());
+  const snapshot = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.snapshot());
 
   expect(snapshot?.rigidBodyCount).toBe(110);
   expect(snapshot?.arena).toMatchObject({
@@ -44,19 +44,19 @@ test("MAP-001/002/004/005/006: the authored arena and movers build with exact co
 
 test("MAP-007: a stationary car rides both position-based platforms", async ({ page }) => {
   await startSandbox(page);
-  const before = await page.evaluate(() => window.__TINY_TRACTION_TEST__?.snapshot());
+  const before = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.snapshot());
   const lift = before?.movers.movingPlatforms.find(({ id }) => id === "vertical-lift");
   expect(lift).toBeDefined();
 
   await page.evaluate(
     ({ x, y, z }) =>
-      window.__TINY_TRACTION_TEST__?.setVehicleState(0, {
+      window.__MINI_WHEELS_TEST__?.setVehicleState(0, {
         position: { x, y: y + 0.65, z },
       }),
     lift?.position ?? { x: -32, y: -0.05, z: -28 },
   );
   await page.waitForTimeout(1_200);
-  const after = await page.evaluate(() => window.__TINY_TRACTION_TEST__?.snapshot());
+  const after = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.snapshot());
   const movedLift = after?.movers.movingPlatforms.find(({ id }) => id === "vertical-lift");
 
   expect((movedLift?.position.y ?? 0) - (lift?.position.y ?? 0)).toBeGreaterThan(0.8);
@@ -68,13 +68,13 @@ test("MAP-007: a stationary car rides both position-based platforms", async ({ p
   expect(shuttle).toBeDefined();
   await page.evaluate(
     ({ x, y, z }) =>
-      window.__TINY_TRACTION_TEST__?.setVehicleState(0, {
+      window.__MINI_WHEELS_TEST__?.setVehicleState(0, {
         position: { x, y: y + 0.65, z },
       }),
     shuttle?.position ?? { x: -28, y: 7.9, z: -32 },
   );
   await page.waitForTimeout(1_200);
-  const afterShuttle = await page.evaluate(() => window.__TINY_TRACTION_TEST__?.snapshot());
+  const afterShuttle = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.snapshot());
   const movedShuttle = afterShuttle?.movers.movingPlatforms.find(
     ({ id }) => id === "horizontal-shuttle",
   );
@@ -88,14 +88,14 @@ test("MAP-008: a legacy-speed rotating bar transfers momentum to a stationary ca
 }) => {
   await startSandbox(page);
   await page.evaluate(() =>
-    window.__TINY_TRACTION_TEST__?.setVehicleState(0, {
+    window.__MINI_WHEELS_TEST__?.setVehicleState(0, {
       position: { x: -27, y: 0.7, z: 10 },
     }),
   );
 
   const collisionHandle = await page.waitForFunction(
     () => {
-      const vehicle = window.__TINY_TRACTION_TEST__?.snapshot()?.vehicle;
+      const vehicle = window.__MINI_WHEELS_TEST__?.snapshot()?.vehicle;
       return vehicle !== undefined && vehicle.speed > 1 ? vehicle : false;
     },
     undefined,

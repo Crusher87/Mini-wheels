@@ -10,6 +10,7 @@ import { DEFAULT_PLAYER_INPUTS, type PlayerInputSettings } from "../../src/persi
 interface GamepadFixture {
   readonly gamepad: Gamepad;
   readonly setMenuPressed: (pressed: boolean) => void;
+  readonly setBrakePressed: (pressed: boolean) => void;
 }
 
 function createGamepad(
@@ -37,6 +38,13 @@ function createGamepad(
     gamepad,
     setMenuPressed: (pressed) => {
       buttons[9] = {
+        pressed,
+        touched: pressed,
+        value: pressed ? 1 : 0,
+      };
+    },
+    setBrakePressed: (pressed) => {
+      buttons[5] = {
         pressed,
         touched: pressed,
         value: pressed ? 1 : 0,
@@ -149,14 +157,15 @@ describe("InputHub", () => {
     const p2Right = dispatchKey("keydown", "ArrowRight");
     expect(p1Up.defaultPrevented).toBe(true);
     expect(p2Right.defaultPrevented).toBe(true);
-    expect(hub.getPlayerAxes(0)).toEqual({ horizontal: 0, vertical: 1 });
-    expect(hub.getPlayerAxes(1)).toEqual({ horizontal: 1, vertical: 0 });
+    expect(hub.getPlayerAxes(0)).toEqual({ horizontal: 0, vertical: 1, brake: false });
+    expect(hub.getPlayerAxes(1)).toEqual({ horizontal: 1, vertical: 0, brake: false });
 
     dispatchKey("keyup", "KeyW");
-    expect(hub.getPlayerAxes(0)).toEqual({ horizontal: 0, vertical: 0 });
+    dispatchKey("keydown", "ShiftLeft");
+    expect(hub.getPlayerAxes(0)).toEqual({ horizontal: 0, vertical: 0, brake: true });
 
     hub.setGameplayEnabled(false);
-    expect(hub.getPlayerAxes(1)).toEqual({ horizontal: 0, vertical: 0 });
+    expect(hub.getPlayerAxes(1)).toEqual({ horizontal: 0, vertical: 0, brake: false });
   });
 
   it("enumerates, exclusively assigns, and reads standard controllers", () => {
@@ -180,6 +189,9 @@ describe("InputHub", () => {
     expect(hub.getPlayerAxes(0).vertical).toBe(1);
     expect(hub.getPlayerAxes(1).horizontal).toBeCloseTo(-0.5);
     expect(hub.getPlayerAxes(1).vertical).toBe(-1);
+    expect(hub.getPlayerAxes(0).brake).toBe(false);
+    first.setBrakePressed(true);
+    expect(hub.getPlayerAxes(0).brake).toBe(true);
   });
 
   it("requires and applies explicit axis calibration for a non-standard controller", () => {
@@ -199,7 +211,7 @@ describe("InputHub", () => {
     hub.configurePlayerSources(uncalibrated, 1, 0.15);
     hub.activate();
     hub.setGameplayEnabled(true);
-    expect(hub.getPlayerAxes(0)).toEqual({ horizontal: 0, vertical: 0 });
+    expect(hub.getPlayerAxes(0)).toEqual({ horizontal: 0, vertical: 0, brake: false });
 
     const calibrated = uncalibrated.map((settings, index) =>
       index === 0

@@ -1,6 +1,9 @@
 import type { ColliderHandle, RigidBodyHandle } from "@dimforge/rapier3d";
 import { describe, expect, it } from "vitest";
-import { BoosterContactState } from "../../src/gameplay/interactables/BoosterPadSystem";
+import {
+  BoosterContactState,
+  applyBoosterPadVelocity,
+} from "../../src/gameplay/interactables/BoosterPadSystem";
 import { addDeltaVelocity } from "../../src/gameplay/interactables/trigger-math";
 
 const BODY_A = 1 as RigidBodyHandle;
@@ -21,6 +24,21 @@ describe("booster velocity math", () => {
       y: 4,
       z: -3,
     });
+  });
+
+  it("supports bounded slow-entry and minimum upward bounce effects", () => {
+    expect(
+      applyBoosterPadVelocity(
+        { x: 10, y: -4, z: -5 },
+        { deltaVelocity: { x: 0, y: 0, z: 0 }, velocityMultiplier: 0.4 },
+      ),
+    ).toEqual({ x: 4, y: -4, z: -2 });
+    expect(
+      applyBoosterPadVelocity(
+        { x: 3, y: -12, z: 4 },
+        { deltaVelocity: { x: 0, y: 0, z: 0 }, minimumVerticalSpeed: 9 },
+      ),
+    ).toEqual({ x: 3, y: 9, z: 4 });
   });
 });
 

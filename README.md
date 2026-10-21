@@ -11,10 +11,11 @@ files belong outside the package directory.
 
 The Profile A sandbox, vehicles, 1–10 player roster, device setup, arena toys,
 front end, render options, procedural VFX/audio and accessibility settings are
-implemented. The release candidate passes format, lint, strict type checking,
-112 unit tests, the complete Chromium/Firefox/WebKit functional matrix, a
-25-reset Chromium resource soak, native-quality visual capture, and optimized
-production-preview smoke. Named real-GPU benchmarks, the 30-minute soak,
+implemented. The current revision passes format, lint, strict type checking,
+113 unit tests, all 29 Chromium functional cases, the corrected
+input/layout/controller routes on Firefox and WebKit, a 25-reset Chromium
+resource soak, native-quality visual capture, and optimized production-preview
+smoke. Named real-GPU benchmarks, the 30-minute soak,
 physical-controller/assistive-technology review, and independent legal approval
 remain explicit external gates. See
 [Implementation status](docs/IMPLEMENTATION_STATUS.md) and
@@ -60,7 +61,7 @@ The intended script contract is:
 | `npm run dev`                     | Start the local Vite/ESM development server                  |
 | `npm run typecheck`               | Run strict TypeScript checking                               |
 | `npm run lint`                    | Run static lint checks                                       |
-| `npm run test`                    | Run 112 unit tests                                           |
+| `npm run test`                    | Run 113 unit tests                                           |
 | `npm run test:browser`            | Run the complete Chromium functional suite                   |
 | `npm run test:browser:matrix`     | Run Chromium, Firefox, and WebKit functional suites          |
 | `npm run test:visual`             | Regenerate six native-quality visual scenarios               |
@@ -127,15 +128,15 @@ checks before release. Do not deploy a development server as production.
 
 ## Controls
 
-- Player 1 keyboard default: `W`, `A`, `S`, `D`.
-- Every keyboard player's Up, Down, Left, and Right bindings are configurable.
-- Standard gamepads use the left stick for drive and steering.
+- Player 1 keyboard default: `W`, `A`, `S`, `D`; brake/drift is `Left Shift`.
+- Every keyboard player's Forward, Reverse, Left, Right, and Brake/Drift bindings are configurable.
+- Standard gamepads use the left stick for drive and steering; either shoulder button brakes/drifts.
 - Pause: `Escape` when the browser delivers it, `P`, or gamepad Menu/Start.
 - The browser may reserve `Escape` to leave fullscreen; a fullscreen exit pauses
   gameplay.
 
-There is no jump, handbrake, weapon, boost button, camera control, or manual
-respawn action in the faithful profile.
+There is no jump, weapon, boost button, camera control, or manual respawn
+action. Brake/Drift is a user-directed browser gameplay extension.
 
 ## Evidence and change policy
 

@@ -7,7 +7,7 @@ import type { DebugBodyState, WorldDebugSnapshot } from "../world/WorldSession";
 
 declare global {
   interface Window {
-    __TINY_TRACTION_TEST__?:
+    __MINI_WHEELS_TEST__?:
       | {
           readonly state: () => AppState;
           readonly snapshot: () => WorldDebugSnapshot | null;

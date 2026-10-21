@@ -1,6 +1,6 @@
 # Browser support and performance
 
-Status date: 2026-07-28 (America/Vancouver)  
+Status date: 2026-07-30 (America/Vancouver)
 Relevant acceptance IDs: `PERF-001`–`PERF-007`, `WEB-001`–`WEB-010`  
 Verification status: `PARTIAL — INSTRUMENTATION EXISTS; RELEASE BENCHMARKS NOT RUN`
 
@@ -82,7 +82,7 @@ dedicated controlled run rather than a CI pass/fail alone.
 
 Browser specs include boot, input, arena, interactables, render settings,
 reset/collision soak, lifecycle faults, UI, production, and visual evidence.
-There are 34 defined cases across 11 files per project.
+There are 36 defined cases across 11 files per project.
 
 ## Runtime telemetry
 

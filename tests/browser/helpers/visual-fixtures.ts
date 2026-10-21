@@ -121,7 +121,7 @@ export async function startVisualSandbox(
   await page.getByRole("button", { name: /sandbox/i }).click();
   await waitForPlaying(page, playerCount);
   await page.waitForFunction(() => {
-    const render = window.__TINY_TRACTION_TEST__?.renderSnapshot();
+    const render = window.__MINI_WHEELS_TEST__?.renderSnapshot();
     return (
       render !== null &&
       render !== undefined &&
@@ -135,10 +135,10 @@ export async function startVisualSandbox(
 }
 
 export async function pauseVisualFixture(page: Page): Promise<void> {
-  const state = await page.evaluate(() => window.__TINY_TRACTION_TEST__?.state());
+  const state = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.state());
   if (state === "playing") {
     await page.keyboard.press("p");
-    await page.waitForFunction(() => window.__TINY_TRACTION_TEST__?.state() === "paused");
+    await page.waitForFunction(() => window.__MINI_WHEELS_TEST__?.state() === "paused");
   }
 }
 

@@ -112,6 +112,14 @@ export class ParticlePool {
     this.emit(position, velocity, color, 0.12, 0.82);
   }
 
+  public emitDriftSpark(
+    position: Vector3Like,
+    velocity: Vector3Like,
+    alternateColor = false,
+  ): void {
+    this.emit(position, velocity, alternateColor ? 0xffd84a : 0xff7b00, 0.085, 0.32);
+  }
+
   public emitBoosterBurst(position: Vector3Like, count: number): void {
     const safeCount = Math.max(0, Math.floor(count));
     for (let index = 0; index < safeCount; index += 1) {

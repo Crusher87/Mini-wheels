@@ -25,10 +25,10 @@ test("FLOW-007/WEB-003: hidden-page return stays paused without a catch-up burst
     document.dispatchEvent(new Event("visibilitychange"));
   });
   await expect(page.getByRole("heading", { name: "Paused" })).toBeVisible();
-  await page.evaluate(() => window.__TINY_TRACTION_TEST__?.resetPerformance());
-  const paused = await page.evaluate(() => window.__TINY_TRACTION_TEST__?.snapshot()?.vehicle);
+  await page.evaluate(() => window.__MINI_WHEELS_TEST__?.resetPerformance());
+  const paused = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.snapshot()?.vehicle);
   await page.waitForTimeout(500);
-  const stillPaused = await page.evaluate(() => window.__TINY_TRACTION_TEST__?.snapshot()?.vehicle);
+  const stillPaused = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.snapshot()?.vehicle);
   expect(stillPaused?.x).toBeCloseTo(paused?.x ?? 0, 6);
   expect(stillPaused?.y).toBeCloseTo(paused?.y ?? 0, 6);
   expect(stillPaused?.z).toBeCloseTo(paused?.z ?? 0, 6);
@@ -43,7 +43,7 @@ test("FLOW-007/WEB-003: hidden-page return stays paused without a catch-up burst
   await page.getByRole("button", { name: "Resume" }).click();
   await page.waitForTimeout(100);
   expect(
-    await page.evaluate(() => window.__TINY_TRACTION_TEST__?.performanceSnapshot().overloadCount),
+    await page.evaluate(() => window.__MINI_WHEELS_TEST__?.performanceSnapshot().overloadCount),
   ).toBe(0);
 });
 
@@ -74,7 +74,7 @@ test("UI-004/WEB-004: fullscreen denial is recoverable and fullscreen exit pause
   await page.getByRole("button", { name: /sandbox/i }).click();
   await waitForPlaying(page);
   if (!fullscreenSupported) {
-    expect(await page.evaluate(() => window.__TINY_TRACTION_TEST__?.appSnapshot().state)).toBe(
+    expect(await page.evaluate(() => window.__MINI_WHEELS_TEST__?.appSnapshot().state)).toBe(
       "playing",
     );
     return;
@@ -105,9 +105,7 @@ test("WEB-006: a WebGL context-loss event stops simulation and offers recovery",
   expect(prevented).toBe(true);
   await expect(page.getByRole("heading", { name: /lab stopped/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /reload/i })).toBeVisible();
-  expect(await page.evaluate(() => window.__TINY_TRACTION_TEST__?.appSnapshot().state)).toBe(
-    "error",
-  );
+  expect(await page.evaluate(() => window.__MINI_WHEELS_TEST__?.appSnapshot().state)).toBe("error");
 });
 
 test("WEB-007/008: missing gamepads and failing storage do not block keyboard play", async ({
@@ -127,7 +125,7 @@ test("WEB-007/008: missing gamepads and failing storage do not block keyboard pl
   await startSandbox(page);
   await page.keyboard.down("KeyW");
   const drivenForce = await page.waitForFunction(() => {
-    const force = window.__TINY_TRACTION_TEST__?.snapshot()?.vehicle.engineForce ?? 0;
+    const force = window.__MINI_WHEELS_TEST__?.snapshot()?.vehicle.engineForce ?? 0;
     return Math.abs(force) >= 1_999 ? force : false;
   });
   await page.keyboard.up("KeyW");

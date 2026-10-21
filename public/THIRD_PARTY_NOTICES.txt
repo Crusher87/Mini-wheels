@@ -1,4 +1,4 @@
-Tiny Traction third-party notices
+Mini Wheels third-party notices
 
 This production distribution includes the following direct runtime packages:
 

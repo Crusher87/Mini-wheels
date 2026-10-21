@@ -265,6 +265,28 @@ describe("AudioService activation and buses", () => {
 });
 
 describe("AudioService procedural voices", () => {
+  it("starts, replaces, and stops one bounded built-in music bed", async () => {
+    const context = new FakeAudioContext();
+    const service = serviceWithContext(context);
+    await service.unlock();
+
+    expect(service.setMapMusic("music.starlight", 0.5)).toBe(true);
+    expect(service.debugSnapshot()).toMatchObject({
+      activeMusicVoiceCount: 1,
+      liveOscillatorNodeCount: 2,
+    });
+    expect(context.oscillators.slice(-2).map((oscillator) => oscillator.type)).toEqual([
+      "sine",
+      "sine",
+    ]);
+
+    expect(service.setMapMusic("music.arcade", 0.3)).toBe(true);
+    expect(context.oscillators.slice(0, 2).every((oscillator) => oscillator.stopped)).toBe(true);
+    expect(service.debugSnapshot().activeMusicVoiceCount).toBe(1);
+    expect(service.setMapMusic(null)).toBe(true);
+    expect(service.debugSnapshot().activeMusicVoiceCount).toBe(0);
+  });
+
   it("synthesizes capped cues, pans them, and releases every short-lived node", async () => {
     const context = new FakeAudioContext();
     const service = serviceWithContext(context);

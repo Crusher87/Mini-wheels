@@ -76,14 +76,14 @@ describe("player ring spawn", () => {
   });
 
   it.each(PLAYER_COUNTS)(
-    "orients every local -Z vehicle forward axis toward center for N=%i",
+    "orients every visible local +Z vehicle forward axis toward center for N=%i",
     (playerCount) => {
       for (let index = 0; index < playerCount; index += 1) {
         const { position, quaternion } = calculatePlayerSpawnTransform(
           playerCount,
           createPlayerIndex(index),
         );
-        const forward = new Vector3(0, 0, -1).applyQuaternion(
+        const forward = new Vector3(0, 0, 1).applyQuaternion(
           new Quaternion(quaternion.x, quaternion.y, quaternion.z, quaternion.w),
         );
         const toCenter = new Vector3(-position.x, 0, -position.z).normalize();

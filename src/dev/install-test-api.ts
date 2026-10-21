@@ -1,9 +1,9 @@
-type TinyTractionTestApi = NonNullable<Window["__TINY_TRACTION_TEST__"]>;
+type MiniWheelsTestApi = NonNullable<Window["__MINI_WHEELS_TEST__"]>;
 
-export function installTestApi(api: TinyTractionTestApi): () => void {
-  window.__TINY_TRACTION_TEST__ = api;
+export function installTestApi(api: MiniWheelsTestApi): () => void {
+  window.__MINI_WHEELS_TEST__ = api;
 
   return () => {
-    delete window.__TINY_TRACTION_TEST__;
+    delete window.__MINI_WHEELS_TEST__;
   };
 }

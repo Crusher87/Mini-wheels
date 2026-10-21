@@ -1,7 +1,17 @@
-import type { DynamicRayCastVehicleController, RigidBody, World } from "@dimforge/rapier3d";
+import type {
+  Collider,
+  DynamicRayCastVehicleController,
+  RigidBody,
+  World,
+} from "@dimforge/rapier3d";
 import type { LogicalAxes } from "../input/InputHub";
 import { VEHICLE_SOURCE_REFERENCE } from "../config/source-reference";
 import { VEHICLE_RUNTIME } from "../config/vehicle-runtime";
+import {
+  AUTHORED_SURFACE_PRESETS,
+  type SurfaceContactFrame,
+} from "../gameplay/vehicle/SurfaceContactSystem";
+import type { TrackSurface } from "../maps/MapDocument";
 import type { RapierModule } from "./rapier-init";
 import { COLLISION_GROUPS } from "./CollisionGroups";
 
@@ -39,6 +49,37 @@ export interface WheelRenderPose {
   readonly inContact: boolean;
 }
 
+export interface WheelContactPoint {
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+}
+
+export interface AuthoredWallContact {
+  readonly awayNormalX: number;
+  readonly awayNormalZ: number;
+  readonly penetrationDepth: number;
+}
+
+export interface AuthoredWallResponse {
+  readonly separationX: number;
+  readonly separationZ: number;
+  readonly velocityX: number;
+  readonly velocityZ: number;
+}
+
+export interface JumpLandingState {
+  readonly airborneSeconds: number;
+  readonly groundDistance: number | null;
+  readonly verticalVelocity: number;
+}
+
+export const JUMP_LANDING_MINIMUM_AIRBORNE_SECONDS = 0.18;
+export const JUMP_LANDING_MAXIMUM_GROUND_DISTANCE = 1.4;
+const AUTHORED_WALL_CLEARANCE = 0.025;
+const AUTHORED_WALL_MAXIMUM_SEPARATION = 0.2;
+const AUTHORED_WALL_EXIT_SPEED = 0.35;
+
 interface MutableWheelState {
   suspensionLength: number;
   steering: number;
@@ -48,6 +89,52 @@ interface MutableWheelState {
 
 function clampAxis(value: number): number {
   return Number.isFinite(value) ? Math.min(Math.max(value, -1), 1) : 0;
+}
+
+function clampRange(value: number, minimum: number, maximum: number): number {
+  return Math.min(maximum, Math.max(minimum, value));
+}
+
+export function authoredWallResponse(
+  contact: AuthoredWallContact,
+  velocityX: number,
+  velocityZ: number,
+): AuthoredWallResponse | null {
+  const normalLength = Math.hypot(contact.awayNormalX, contact.awayNormalZ);
+  if (
+    !Number.isFinite(normalLength + contact.penetrationDepth + velocityX + velocityZ) ||
+    normalLength < 0.001
+  ) {
+    return null;
+  }
+  const normalX = contact.awayNormalX / normalLength;
+  const normalZ = contact.awayNormalZ / normalLength;
+  const separation = clampRange(
+    Math.max(0, contact.penetrationDepth) + AUTHORED_WALL_CLEARANCE,
+    AUTHORED_WALL_CLEARANCE,
+    AUTHORED_WALL_MAXIMUM_SEPARATION,
+  );
+  const outwardSpeed = velocityX * normalX + velocityZ * normalZ;
+  const exitSpeed =
+    outwardSpeed < AUTHORED_WALL_EXIT_SPEED ? AUTHORED_WALL_EXIT_SPEED : outwardSpeed;
+  const speedCorrection = exitSpeed - outwardSpeed;
+  return {
+    separationX: normalX * separation,
+    separationZ: normalZ * separation,
+    velocityX: velocityX + normalX * speedCorrection,
+    velocityZ: velocityZ + normalZ * speedCorrection,
+  };
+}
+
+export function shouldAssistJumpLanding(state: JumpLandingState): boolean {
+  return (
+    Number.isFinite(state.airborneSeconds + state.verticalVelocity) &&
+    state.airborneSeconds >= JUMP_LANDING_MINIMUM_AIRBORNE_SECONDS &&
+    state.groundDistance !== null &&
+    Number.isFinite(state.groundDistance) &&
+    state.groundDistance <= JUMP_LANDING_MAXIMUM_GROUND_DISTANCE &&
+    state.verticalVelocity <= 0.5
+  );
 }
 
 export function shortestAngleDelta(previous: number, current: number): number {
@@ -64,8 +151,10 @@ export function mapDriveForce(
   verticalInput: number,
   normalizedWheelOmega: number,
   localForwardSpeed: number,
+  horizontalInput = 0,
 ): DriveMapping {
   const input = clampAxis(verticalInput);
+  const steering = Math.abs(clampAxis(horizontalInput));
   const motionSignal =
     Math.abs(normalizedWheelOmega) > DIRECTION_EPSILON ? normalizedWheelOmega : localForwardSpeed;
   const opposing =
@@ -74,8 +163,24 @@ export function mapDriveForce(
     Math.sign(input) !== Math.sign(motionSignal);
   const magnitude = opposing
     ? VEHICLE_RUNTIME.drive.frontOpposingForce
-    : VEHICLE_RUNTIME.drive.frontEngineForce;
+    : VEHICLE_RUNTIME.drive.frontEngineForce *
+      (1 + steering * VEHICLE_RUNTIME.drive.corneringForceBoost);
   return { engineForce: input * magnitude, opposing };
+}
+
+export function mapSteeringRadians(horizontalInput: number, localForwardSpeed: number): number {
+  const speed = Number.isFinite(localForwardSpeed) ? Math.abs(localForwardSpeed) : 0;
+  const steeringRange =
+    VEHICLE_RUNTIME.drive.minimumSteeringAtSpeed - VEHICLE_RUNTIME.drive.fullSteeringUntilSpeed;
+  const highSpeedProgress =
+    steeringRange > 0
+      ? Math.min(
+          1,
+          Math.max(0, (speed - VEHICLE_RUNTIME.drive.fullSteeringUntilSpeed) / steeringRange),
+        )
+      : 1;
+  const speedScale = 1 - highSpeedProgress * (1 - VEHICLE_RUNTIME.drive.highSpeedSteeringScale);
+  return clampAxis(horizontalInput) * VEHICLE_RUNTIME.drive.maxSteeringRadians * speedScale;
 }
 
 function createWheelState(): MutableWheelState {
@@ -157,6 +262,7 @@ export function selectPassengerSurfaceCorrection(
 
 export class VehiclePhysicsAdapter {
   public readonly body: RigidBody;
+  private readonly chassisColliders: Collider[] = [];
   private readonly controller: DynamicRayCastVehicleController;
   private readonly previousWheels = createWheelStates();
   private readonly currentWheels = createWheelStates();
@@ -164,6 +270,10 @@ export class VehiclePhysicsAdapter {
   private localForwardSpeed = 0;
   private appliedEngineForce = 0;
   private appliedSteering = 0;
+  private brakePressed = false;
+  private drifting = false;
+  private rearDriftGripApplied = false;
+  private driftEntryHorizontalSpeed = 0;
   private opposing = false;
   private recoveryEvents = 0;
   private lastRecoverySpeed = 0;
@@ -171,6 +281,16 @@ export class VehiclePhysicsAdapter {
   private passengerSurfaceCorrectionEvents = 0;
   private lastPassengerSurfaceVelocityX = 0;
   private lastPassengerSurfaceVelocityZ = 0;
+  private authoredWallStabilizationEvents = 0;
+  private authoredWallSeparationEvents = 0;
+  private jumpLandingAssistEvents = 0;
+  private airborneSeconds = 0;
+  private authoredSurface: TrackSurface | null = null;
+  private authoredSurfaceFrictionSlipMultiplier = 1;
+  private authoredSurfaceSideGripMultiplier = 1;
+  private authoredBoostEvents = 0;
+  private authoredBounceEvents = 0;
+  private authoredHazardEvents = 0;
   private disposed = false;
   private readonly spawnPosition: { readonly x: number; readonly y: number; readonly z: number };
   private readonly spawnRotation: {
@@ -222,7 +342,7 @@ export class VehiclePhysicsAdapter {
         .setFriction(0.8)
         .setRestitution(0.05)
         .setCollisionGroups(COLLISION_GROUPS.car);
-      world.createCollider(collider, this.body);
+      this.chassisColliders.push(world.createCollider(collider, this.body));
     }
 
     this.controller = world.createVehicleController(this.body);
@@ -284,23 +404,156 @@ export class VehiclePhysicsAdapter {
       input.vertical,
       this.normalizedWheelOmega,
       this.localForwardSpeed,
+      input.horizontal,
     );
     this.appliedEngineForce = mapping.engineForce;
     this.opposing = mapping.opposing;
-    this.appliedSteering = clampAxis(input.horizontal) * VEHICLE_RUNTIME.drive.maxSteeringRadians;
+    this.appliedSteering = mapSteeringRadians(input.horizontal, this.localForwardSpeed);
+    this.brakePressed = input.brake;
+    const wantsDrift =
+      input.brake &&
+      Math.abs(input.horizontal) >= VEHICLE_RUNTIME.drift.minimumSteeringInput &&
+      REAR_WHEELS.some((index) => this.currentWheels[index].inContact);
+    const driftSpeedThreshold = this.drifting
+      ? VEHICLE_RUNTIME.drift.minimumExitSpeed
+      : VEHICLE_RUNTIME.drift.minimumSpeed;
+    const wasDrifting = this.drifting;
+    this.drifting = wantsDrift && Math.abs(this.localForwardSpeed) >= driftSpeedThreshold;
+    if (this.drifting && !wasDrifting) {
+      const velocity = this.body.linvel();
+      this.driftEntryHorizontalSpeed = Math.hypot(velocity.x, velocity.z);
+    } else if (!this.drifting) {
+      this.driftEntryHorizontalSpeed = 0;
+    }
+    this.setRearDriftGrip(this.drifting);
+    if (this.drifting) {
+      if (!this.opposing) {
+        this.appliedEngineForce *= VEHICLE_RUNTIME.drift.driveForceMultiplier;
+      }
+      this.appliedSteering = Math.min(
+        VEHICLE_RUNTIME.drive.maxSteeringRadians,
+        Math.max(
+          -VEHICLE_RUNTIME.drive.maxSteeringRadians,
+          this.appliedSteering * VEHICLE_RUNTIME.drift.steeringMultiplier,
+        ),
+      );
+    }
+    const serviceBrake =
+      this.brakePressed &&
+      !this.drifting &&
+      Math.abs(input.horizontal) < VEHICLE_RUNTIME.drift.minimumSteeringInput;
 
     for (const index of FRONT_WHEELS) {
-      this.controller.setWheelEngineForce(index, this.appliedEngineForce);
-      this.controller.setWheelSteering(index, this.appliedSteering);
-      this.controller.setWheelBrake(index, 0);
+      // The authored car's nose and front axle are local +Z. Rapier's +X axle
+      // convention requires negative physical force/steering for semantic
+      // forward/right input, so translate signs only at this boundary.
+      this.controller.setWheelEngineForce(index, -this.appliedEngineForce);
+      this.controller.setWheelSteering(index, -this.appliedSteering);
+      this.controller.setWheelBrake(
+        index,
+        serviceBrake ? VEHICLE_RUNTIME.drift.serviceBrakeForce : 0,
+      );
     }
     for (const index of REAR_WHEELS) {
       this.controller.setWheelEngineForce(index, 0);
       this.controller.setWheelSteering(index, 0);
-      this.controller.setWheelBrake(index, 0);
+      this.controller.setWheelBrake(
+        index,
+        this.drifting
+          ? VEHICLE_RUNTIME.drift.rearBrakeForce
+          : serviceBrake
+            ? VEHICLE_RUNTIME.drift.serviceBrakeForce
+            : 0,
+      );
     }
     this.controller.updateVehicle(fixedDeltaSeconds, this.rapier.QueryFilterFlags.EXCLUDE_SENSORS);
     this.applyProfileBPassengerSurfaceCorrection(input.vertical);
+  }
+
+  public applyAuthoredSurfaceContact(frame: SurfaceContactFrame, fixedDeltaSeconds: number): void {
+    this.authoredSurface = frame.dominantSurface;
+    this.setAuthoredSurfaceGrip(frame.frictionSlipMultiplier, frame.sideGripMultiplier);
+
+    if (frame.slowStrength > 0) {
+      const velocity = this.body.linvel();
+      const damping = Math.exp(
+        -AUTHORED_SURFACE_PRESETS.slow.dampingPerSecond * frame.slowStrength * fixedDeltaSeconds,
+      );
+      this.body.setLinvel(
+        { x: velocity.x * damping, y: velocity.y, z: velocity.z * damping },
+        true,
+      );
+    }
+    if (frame.triggerBoost) {
+      this.applyAuthoredBoost(frame.boostStrength);
+      this.authoredBoostEvents += 1;
+    }
+    if (frame.triggerBounce) {
+      const velocity = this.body.linvel();
+      this.body.setLinvel(
+        {
+          x: velocity.x,
+          y: Math.max(
+            velocity.y,
+            AUTHORED_SURFACE_PRESETS.bouncy.minimumVerticalSpeed * frame.bounceStrength,
+          ),
+          z: velocity.z,
+        },
+        true,
+      );
+      this.authoredBounceEvents += 1;
+    }
+    if (frame.triggerHazard) {
+      const velocity = this.body.linvel();
+      const angularVelocity = this.body.angvel();
+      const speedMultiplier = clampRange(
+        1 - (1 - AUTHORED_SURFACE_PRESETS.hazard.speedMultiplier) * frame.hazardStrength,
+        0.1,
+        1,
+      );
+      this.body.setLinvel(
+        {
+          x: velocity.x * speedMultiplier,
+          y: Math.min(velocity.y, 0.5),
+          z: velocity.z * speedMultiplier,
+        },
+        true,
+      );
+      this.body.setAngvel(
+        {
+          x: angularVelocity.x * 0.25,
+          y: clampRange(
+            angularVelocity.y + AUTHORED_SURFACE_PRESETS.hazard.yawImpulse * frame.hazardStrength,
+            -6,
+            6,
+          ),
+          z: angularVelocity.z * 0.25,
+        },
+        true,
+      );
+      this.authoredHazardEvents += 1;
+    }
+  }
+
+  public clearAuthoredSurfaceEffects(): void {
+    this.authoredSurface = null;
+    this.setAuthoredSurfaceGrip(1, 1);
+  }
+
+  public setRecoveryCollisionProtection(enabled: boolean): void {
+    const collisionGroups = enabled ? COLLISION_GROUPS.protectedCar : COLLISION_GROUPS.car;
+    for (const collider of this.chassisColliders) {
+      collider.setCollisionGroups(collisionGroups);
+    }
+  }
+
+  public getWheelGroundColliderHandles(): readonly (number | null)[] {
+    return ALL_WHEELS.map((index) => {
+      if (!this.controller.wheelIsInContact(index)) {
+        return null;
+      }
+      return this.controller.wheelGroundObject(index)?.handle ?? null;
+    });
   }
 
   public finishFixedStep(fixedDeltaSeconds: number): void {
@@ -314,13 +567,16 @@ export class VehiclePhysicsAdapter {
       state.rotation = rotation;
       state.inContact = this.controller.wheelIsInContact(index);
       if (index < 2) {
-        // Axle +X requires negative physical spin for +Z travel. Normalize it so
-        // positive omega means forward, matching the source hard-brake sign rule.
+        // Axle +X produces positive physical spin for logical local +Z travel.
+        // Preserve the semantic convention that positive omega means forward.
         omegaSum +=
-          -shortestAngleDelta(this.previousWheels[index].rotation, rotation) / fixedDeltaSeconds;
+          shortestAngleDelta(this.previousWheels[index].rotation, rotation) / fixedDeltaSeconds;
       }
     }
     this.normalizedWheelOmega = omegaSum / FRONT_WHEELS.length;
+    this.airborneSeconds =
+      this.supportingWheelCount === 0 ? this.airborneSeconds + fixedDeltaSeconds : 0;
+    this.preserveDriftMomentum();
     this.localForwardSpeed = this.computeLocalForwardSpeed();
   }
 
@@ -340,6 +596,20 @@ export class VehiclePhysicsAdapter {
     this.lastRecoverySpeed = this.speed;
   }
 
+  public recoverTo(
+    position: { readonly x: number; readonly y: number; readonly z: number },
+    rotation: {
+      readonly x: number;
+      readonly y: number;
+      readonly z: number;
+      readonly w: number;
+    },
+  ): void {
+    this.teleport(position, rotation, false);
+    this.recoveryEvents += 1;
+    this.lastRecoverySpeed = this.speed;
+  }
+
   public recoverUpright(): void {
     const position = this.body.translation();
     const rotation = this.body.rotation();
@@ -353,6 +623,103 @@ export class VehiclePhysicsAdapter {
       { x: 0, y: Math.sin(halfYaw), z: 0, w: Math.cos(halfYaw) },
       false,
     );
+  }
+
+  public resolveAuthoredWallContact(contact: AuthoredWallContact): boolean {
+    const position = this.body.translation();
+    const velocity = this.body.linvel();
+    const response = authoredWallResponse(contact, velocity.x, velocity.z);
+    if (response === null) {
+      return false;
+    }
+    this.body.setTranslation(
+      {
+        x: position.x + response.separationX,
+        y: position.y,
+        z: position.z + response.separationZ,
+      },
+      true,
+    );
+    this.body.setLinvel(
+      { x: response.velocityX, y: Math.min(velocity.y, 1), z: response.velocityZ },
+      true,
+    );
+    this.authoredWallSeparationEvents += 1;
+
+    // Suppress rail-created lift and violent roll, but preserve the current
+    // orientation. In particular, a wall touch never snaps an airborne car
+    // upright.
+    const angularVelocity = this.body.angvel();
+    this.body.setAngvel(
+      {
+        x: clampRange(angularVelocity.x, -4, 4),
+        y: clampRange(angularVelocity.y, -4, 4),
+        z: clampRange(angularVelocity.z, -4, 4),
+      },
+      true,
+    );
+    if (this.supportingWheelCount > 0) {
+      this.authoredWallStabilizationEvents += 1;
+    }
+    return true;
+  }
+
+  public assistJumpLanding(groundDistance: number | null): boolean {
+    const rotation = this.body.rotation();
+    const upX = 2 * (rotation.x * rotation.y - rotation.z * rotation.w);
+    const upZ = 2 * (rotation.y * rotation.z + rotation.x * rotation.w);
+    const velocity = this.body.linvel();
+    if (
+      !shouldAssistJumpLanding({
+        airborneSeconds: this.airborneSeconds,
+        groundDistance,
+        verticalVelocity: velocity.y,
+      })
+    ) {
+      return false;
+    }
+    const yaw = Math.atan2(
+      2 * (rotation.w * rotation.y + rotation.x * rotation.z),
+      1 - 2 * (rotation.y * rotation.y + rotation.z * rotation.z),
+    );
+    const halfYaw = yaw / 2;
+    const target = { x: 0, y: Math.sin(halfYaw), z: 0, w: Math.cos(halfYaw) };
+    const targetScale =
+      rotation.x * target.x +
+        rotation.y * target.y +
+        rotation.z * target.z +
+        rotation.w * target.w <
+      0
+        ? -1
+        : 1;
+    const blend = 0.12;
+    const next = {
+      x: rotation.x * (1 - blend) + target.x * targetScale * blend,
+      y: rotation.y * (1 - blend) + target.y * targetScale * blend,
+      z: rotation.z * (1 - blend) + target.z * targetScale * blend,
+      w: rotation.w * (1 - blend) + target.w * targetScale * blend,
+    };
+    const inverseLength = 1 / Math.hypot(next.x, next.y, next.z, next.w);
+    this.body.setRotation(
+      {
+        x: next.x * inverseLength,
+        y: next.y * inverseLength,
+        z: next.z * inverseLength,
+        w: next.w * inverseLength,
+      },
+      true,
+    );
+    const angularVelocity = this.body.angvel();
+    this.body.setAngvel(
+      {
+        x: clampRange(angularVelocity.x * 0.5 - upZ * 3.5, -3.5, 3.5),
+        y: clampRange(angularVelocity.y, -4, 4),
+        z: clampRange(angularVelocity.z * 0.5 + upX * 3.5, -3.5, 3.5),
+      },
+      true,
+    );
+    this.jumpLandingAssistEvents += 1;
+    return true;
   }
 
   public teleport(
@@ -377,6 +744,12 @@ export class VehiclePhysicsAdapter {
   public synchronizeAfterExternalTeleport(): void {
     this.normalizedWheelOmega = 0;
     this.localForwardSpeed = this.computeLocalForwardSpeed();
+    this.brakePressed = false;
+    this.drifting = false;
+    this.driftEntryHorizontalSpeed = 0;
+    this.airborneSeconds = 0;
+    this.setRearDriftGrip(false);
+    this.clearAuthoredSurfaceEffects();
     for (const index of ALL_WHEELS) {
       Object.assign(this.previousWheels[index], createWheelState());
       Object.assign(this.currentWheels[index], createWheelState());
@@ -399,6 +772,20 @@ export class VehiclePhysicsAdapter {
       rotation: previous.rotation + shortestAngleDelta(previous.rotation, current.rotation) * blend,
       inContact: current.inContact,
     };
+  }
+
+  public getRearWheelContactPoints(): readonly WheelContactPoint[] {
+    const points: WheelContactPoint[] = [];
+    for (const index of REAR_WHEELS) {
+      if (!this.currentWheels[index].inContact) {
+        continue;
+      }
+      const point = this.controller.wheelContactPoint(index);
+      if (point !== null) {
+        points.push({ x: point.x, y: point.y, z: point.z });
+      }
+    }
+    return points;
   }
 
   public get speed(): number {
@@ -426,6 +813,14 @@ export class VehiclePhysicsAdapter {
     return this.opposing;
   }
 
+  public get isBraking(): boolean {
+    return this.brakePressed;
+  }
+
+  public get isDrifting(): boolean {
+    return this.drifting;
+  }
+
   public get recoveryCount(): number {
     return this.recoveryEvents;
   }
@@ -445,6 +840,38 @@ export class VehiclePhysicsAdapter {
     };
   }
 
+  public get authoredWallStabilizationCount(): number {
+    return this.authoredWallStabilizationEvents;
+  }
+
+  public get authoredWallSeparationCount(): number {
+    return this.authoredWallSeparationEvents;
+  }
+
+  public get jumpLandingAssistCount(): number {
+    return this.jumpLandingAssistEvents;
+  }
+
+  public get currentAirborneSeconds(): number {
+    return this.airborneSeconds;
+  }
+
+  public get currentAuthoredSurface(): TrackSurface | null {
+    return this.authoredSurface;
+  }
+
+  public get authoredBoostCount(): number {
+    return this.authoredBoostEvents;
+  }
+
+  public get authoredBounceCount(): number {
+    return this.authoredBounceEvents;
+  }
+
+  public get authoredHazardCount(): number {
+    return this.authoredHazardEvents;
+  }
+
   public dispose(): void {
     if (this.disposed) {
       return;
@@ -454,16 +881,104 @@ export class VehiclePhysicsAdapter {
     this.world.removeRigidBody(this.body);
   }
 
+  private get supportingWheelCount(): number {
+    return ALL_WHEELS.reduce<number>(
+      (count, index) => count + (this.controller.wheelIsInContact(index) ? 1 : 0),
+      0,
+    );
+  }
+
   private computeLocalForwardSpeed(): number {
     const rotation = this.body.rotation();
     const velocity = this.body.linvel();
     const forwardX = 2 * (rotation.x * rotation.z + rotation.w * rotation.y);
     const forwardY = 2 * (rotation.y * rotation.z - rotation.w * rotation.x);
     const forwardZ = 1 - 2 * (rotation.x * rotation.x + rotation.y * rotation.y);
-    // Rapier's controller applies positive engine force toward local -Z when
-    // forward-axis index 2 is selected. Treat that direction consistently as
-    // logical forward throughout gameplay and spawn-facing math.
-    return -(velocity.x * forwardX + velocity.y * forwardY + velocity.z * forwardZ);
+    // The visual nose, front axle and spawn-facing convention all use local
+    // +Z, so positive telemetry consistently means visible forward travel.
+    return velocity.x * forwardX + velocity.y * forwardY + velocity.z * forwardZ;
+  }
+
+  private preserveDriftMomentum(): void {
+    if (!this.drifting || this.driftEntryHorizontalSpeed <= 0) {
+      return;
+    }
+    const velocity = this.body.linvel();
+    const horizontalSpeed = Math.hypot(velocity.x, velocity.z);
+    const minimumSpeed =
+      this.driftEntryHorizontalSpeed * VEHICLE_RUNTIME.drift.minimumMomentumRetention;
+    if (horizontalSpeed >= minimumSpeed || horizontalSpeed <= 0.001) {
+      return;
+    }
+    const scale = minimumSpeed / horizontalSpeed;
+    this.body.setLinvel(
+      {
+        x: velocity.x * scale,
+        y: velocity.y,
+        z: velocity.z * scale,
+      },
+      true,
+    );
+  }
+
+  private setRearDriftGrip(enabled: boolean): void {
+    if (enabled === this.rearDriftGripApplied) {
+      return;
+    }
+    this.rearDriftGripApplied = enabled;
+    this.applyWheelGrip();
+  }
+
+  private setAuthoredSurfaceGrip(frictionSlipMultiplier: number, sideGripMultiplier: number): void {
+    if (
+      Math.abs(this.authoredSurfaceFrictionSlipMultiplier - frictionSlipMultiplier) < 0.0001 &&
+      Math.abs(this.authoredSurfaceSideGripMultiplier - sideGripMultiplier) < 0.0001
+    ) {
+      return;
+    }
+    this.authoredSurfaceFrictionSlipMultiplier = frictionSlipMultiplier;
+    this.authoredSurfaceSideGripMultiplier = sideGripMultiplier;
+    this.applyWheelGrip();
+  }
+
+  private applyWheelGrip(): void {
+    for (const index of ALL_WHEELS) {
+      this.controller.setWheelFrictionSlip(
+        index,
+        VEHICLE_RUNTIME.wheel.frictionSlipInitial * this.authoredSurfaceFrictionSlipMultiplier,
+      );
+      const baseSideGrip =
+        this.rearDriftGripApplied && REAR_WHEELS.includes(index as 2 | 3)
+          ? VEHICLE_RUNTIME.drift.rearSideFrictionStiffness
+          : VEHICLE_RUNTIME.wheel.sideFrictionStiffnessInitial;
+      this.controller.setWheelSideFrictionStiffness(
+        index,
+        baseSideGrip * this.authoredSurfaceSideGripMultiplier,
+      );
+    }
+  }
+
+  private applyAuthoredBoost(strength: number): void {
+    const rotation = this.body.rotation();
+    let forwardX = 2 * (rotation.x * rotation.z + rotation.w * rotation.y);
+    let forwardZ = 1 - 2 * (rotation.x * rotation.x + rotation.y * rotation.y);
+    const horizontalLength = Math.hypot(forwardX, forwardZ);
+    if (horizontalLength <= 0.001) {
+      forwardX = 0;
+      forwardZ = 1;
+    } else {
+      forwardX /= horizontalLength;
+      forwardZ /= horizontalLength;
+    }
+    const velocity = this.body.linvel();
+    this.body.setLinvel(
+      {
+        x: velocity.x + forwardX * AUTHORED_SURFACE_PRESETS.boost.deltaSpeed * strength,
+        y: velocity.y,
+        z: velocity.z + forwardZ * AUTHORED_SURFACE_PRESETS.boost.deltaSpeed * strength,
+      },
+      true,
+    );
   }
 
   private applyProfileBPassengerSurfaceCorrection(verticalInput: number): void {

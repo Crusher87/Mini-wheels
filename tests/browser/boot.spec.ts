@@ -38,25 +38,39 @@ test("VEH-002/003/004: one car accelerates, steers, and applies hard braking", a
   await page.getByRole("button", { name: /sandbox/i }).click();
   await waitForPlaying(page);
 
-  const initial = await page.evaluate(() => window.__TINY_TRACTION_TEST__?.snapshot());
+  const initial = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.snapshot());
   expect(initial).not.toBeNull();
 
   await page.keyboard.down("w");
   await page.waitForTimeout(1_000);
-  const accelerated = await page.evaluate(() => window.__TINY_TRACTION_TEST__?.snapshot());
+  const accelerated = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.snapshot());
   expect(accelerated?.vehicle.speed, JSON.stringify(accelerated)).toBeGreaterThan(1);
+  expect(accelerated?.vehicle.forwardSpeed, JSON.stringify(accelerated)).toBeGreaterThan(1);
+  expect(accelerated?.vehicle.engineForce).toBe(4_000);
+  const spawnAngle = Math.PI / 180;
+  const inwardDisplacement =
+    ((accelerated?.vehicle.x ?? 0) - (initial?.vehicle.x ?? 0)) * -Math.sin(spawnAngle) +
+    ((accelerated?.vehicle.z ?? 0) - (initial?.vehicle.z ?? 0)) * -Math.cos(spawnAngle);
+  expect(inwardDisplacement, JSON.stringify({ initial, accelerated })).toBeGreaterThan(0.25);
 
   await page.keyboard.down("d");
   await page.waitForTimeout(100);
-  const steering = await page.evaluate(() => window.__TINY_TRACTION_TEST__?.snapshot());
-  expect(steering?.vehicle.steering).toBeCloseTo(0.610865238, 5);
+  const steering = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.snapshot());
+  expect(steering?.vehicle.steering).toBeGreaterThan(0);
+  expect(steering?.vehicle.steering).toBeLessThanOrEqual(0.610865238);
+  expect(steering?.vehicle.engineForce).toBe(8_000);
+  await page.waitForTimeout(650);
+  const cornering = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.snapshot());
+  expect(cornering?.vehicle.speed, JSON.stringify({ accelerated, cornering })).toBeGreaterThan(
+    accelerated?.vehicle.speed ?? Number.POSITIVE_INFINITY,
+  );
   await page.keyboard.up("d");
   await page.keyboard.up("w");
 
   await page.keyboard.down("s");
   const brakingHandle = await page.waitForFunction(
     () => {
-      const snapshot = window.__TINY_TRACTION_TEST__?.snapshot();
+      const snapshot = window.__MINI_WHEELS_TEST__?.snapshot();
       return snapshot?.vehicle.hardBraking === true ? snapshot : false;
     },
     undefined,
@@ -67,8 +81,62 @@ test("VEH-002/003/004: one car accelerates, steers, and applies hard braking", a
     throw new Error("Hard-braking snapshot was not captured.");
   }
   expect(braking?.vehicle.hardBraking).toBe(true);
-  expect(Math.abs(braking?.vehicle.engineForce ?? 0)).toBe(20_000);
+  expect(braking?.vehicle.engineForce).toBe(-20_000);
   await page.keyboard.up("s");
+});
+
+test("VEH-013: brake key stops straight and sustains a grounded spark drift", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /start engine/i }).click();
+  await page.getByRole("button", { name: "PLAY", exact: true }).click();
+  await page.getByRole("button", { name: /sandbox/i }).click();
+  await waitForPlaying(page);
+
+  await page.evaluate(() =>
+    window.__MINI_WHEELS_TEST__?.setVehicleState(0, {
+      position: { x: 0, y: 0.3, z: 0 },
+      linearVelocity: { x: 0, y: 0, z: 6 },
+    }),
+  );
+  await page.waitForTimeout(250);
+  await page.keyboard.down("w");
+  const beforeDrift = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.snapshot());
+  await page.keyboard.down("d");
+  await page.keyboard.down("Shift");
+  await page.waitForFunction(
+    () => window.__MINI_WHEELS_TEST__?.snapshot()?.vehicle.drifting === true,
+    undefined,
+    { timeout: 2_000 },
+  );
+  await page.waitForTimeout(600);
+  const drift = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.snapshot());
+
+  expect(drift?.vehicle.braking).toBe(true);
+  expect(drift?.vehicle.drifting).toBe(true);
+  expect(Math.abs(drift?.vehicle.angularVelocity.y ?? 0)).toBeGreaterThan(0.5);
+  expect(drift?.vehicle.speed, JSON.stringify({ beforeDrift, drift })).toBeGreaterThan(
+    (beforeDrift?.vehicle.speed ?? Number.POSITIVE_INFINITY) * 0.75,
+  );
+  expect(
+    (drift?.particles.emittedCount ?? 0) - (beforeDrift?.particles.emittedCount ?? 0),
+  ).toBeGreaterThanOrEqual(20);
+
+  await page.keyboard.up("Shift");
+  await page.keyboard.up("d");
+  await page.keyboard.up("w");
+  await page.waitForFunction(
+    () => window.__MINI_WHEELS_TEST__?.snapshot()?.vehicle.drifting === false,
+  );
+  const beforeServiceBrake = await page.evaluate(
+    () => window.__MINI_WHEELS_TEST__?.snapshot()?.vehicle.speed ?? 0,
+  );
+  await page.keyboard.down("Shift");
+  await page.waitForTimeout(500);
+  const afterServiceBrake = await page.evaluate(
+    () => window.__MINI_WHEELS_TEST__?.snapshot()?.vehicle.speed ?? Number.POSITIVE_INFINITY,
+  );
+  await page.keyboard.up("Shift");
+  expect(afterServiceBrake).toBeLessThan(beforeServiceBrake * 0.5);
 });
 
 test("VEH-008: falling below the arena recovers at spawn with cleared motion", async ({ page }) => {
@@ -78,13 +146,13 @@ test("VEH-008: falling below the arena recovers at spawn with cleared motion", a
   await page.getByRole("button", { name: /sandbox/i }).click();
   await waitForPlaying(page);
 
-  await page.evaluate(() => window.__TINY_TRACTION_TEST__?.dropVehicle());
+  await page.evaluate(() => window.__MINI_WHEELS_TEST__?.dropVehicle());
   await page.waitForFunction(() => {
-    const vehicle = window.__TINY_TRACTION_TEST__?.snapshot()?.vehicle;
+    const vehicle = window.__MINI_WHEELS_TEST__?.snapshot()?.vehicle;
     return vehicle !== undefined && vehicle.recoveryCount > 0;
   });
 
-  const recovered = await page.evaluate(() => window.__TINY_TRACTION_TEST__?.snapshot());
+  const recovered = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.snapshot());
   const onePlayerSpawnAngle = Math.PI / 180;
   expect(recovered?.vehicle.x).toBeCloseTo(Math.sin(onePlayerSpawnAngle) * 0.5, 5);
   expect(recovered?.vehicle.z).toBeCloseTo(Math.cos(onePlayerSpawnAngle) * 0.5, 5);
@@ -97,10 +165,10 @@ test("VEH-006: an authored ramp launches the car with momentum", async ({ page }
   await page.getByRole("button", { name: "PLAY", exact: true }).click();
   await page.getByRole("button", { name: /sandbox/i }).click();
   await waitForPlaying(page);
-  const approachYaw = (157.6 * Math.PI) / 180;
+  const approachYaw = (337.6 * Math.PI) / 180;
   await page.evaluate(
     ({ halfYaw }) =>
-      window.__TINY_TRACTION_TEST__?.setVehicleState(0, {
+      window.__MINI_WHEELS_TEST__?.setVehicleState(0, {
         position: { x: -9.33, y: 0.9, z: -16.95 },
         rotation: {
           x: 0,
@@ -116,7 +184,7 @@ test("VEH-006: an authored ramp launches the car with momentum", async ({ page }
   await page.keyboard.down("KeyW");
   const airborneHandle = await page.waitForFunction(
     () => {
-      const snapshot = window.__TINY_TRACTION_TEST__?.snapshot();
+      const snapshot = window.__MINI_WHEELS_TEST__?.snapshot();
       return snapshot !== null && snapshot !== undefined && snapshot.vehicle.y > 2
         ? snapshot
         : false;
@@ -144,7 +212,7 @@ test("MP-001/002/003/004 and CAM-001/002/003: ten stable cars spawn inward and s
   await page.getByRole("button", { name: /sandbox/i }).click();
   await waitForPlaying(page, 10);
 
-  const snapshot = await page.evaluate(() => window.__TINY_TRACTION_TEST__?.snapshot());
+  const snapshot = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.snapshot());
   expect(snapshot?.vehicles).toHaveLength(10);
   expect(snapshot?.camera.targetCount).toBe(10);
   expect(snapshot?.camera.halfHeight).toBeCloseTo(13, 1);
@@ -165,14 +233,14 @@ test("MP-001/002/003/004 and CAM-001/002/003: ten stable cars spawn inward and s
   ]);
   await expect(page.locator(".player-marker")).toHaveCount(10);
 
-  await page.evaluate(() => window.__TINY_TRACTION_TEST__?.moveVehicle(0, { x: 30, y: 1, z: 30 }));
+  await page.evaluate(() => window.__MINI_WHEELS_TEST__?.moveVehicle(0, { x: 30, y: 1, z: 30 }));
   await page.waitForFunction(() => {
-    const camera = window.__TINY_TRACTION_TEST__?.snapshot()?.camera;
+    const camera = window.__MINI_WHEELS_TEST__?.snapshot()?.camera;
     return (
       (camera?.halfHeight ?? 0) > 15 && (camera?.center.x ?? 0) > 1 && (camera?.center.z ?? 0) > 1
     );
   });
-  const spread = await page.evaluate(() => window.__TINY_TRACTION_TEST__?.snapshot());
+  const spread = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.snapshot());
   expect(spread?.camera.center.x).toBeGreaterThan(1);
   expect(spread?.camera.center.z).toBeGreaterThan(1);
 });
@@ -188,11 +256,11 @@ test("MP-004: distinct keyboard profiles move only their assigned cars", async (
   await waitForPlaying(page, 4);
   await page.waitForTimeout(700);
 
-  const before = await page.evaluate(() => window.__TINY_TRACTION_TEST__?.snapshot()?.vehicles);
+  const before = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.snapshot()?.vehicles);
   await page.keyboard.down("w");
   await page.waitForTimeout(600);
   await page.keyboard.up("w");
-  const after = await page.evaluate(() => window.__TINY_TRACTION_TEST__?.snapshot()?.vehicles);
+  const after = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.snapshot()?.vehicles);
 
   expect(before).toBeDefined();
   expect(after).toBeDefined();

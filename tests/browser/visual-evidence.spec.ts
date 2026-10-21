@@ -20,14 +20,14 @@ test.describe("VIS-001–008 current-render evidence", () => {
     const fixture = VISUAL_FIXTURES.portals;
     await startVisualSandbox(page, fixture);
     await page.evaluate(() =>
-      window.__TINY_TRACTION_TEST__?.setVehicleState(0, {
+      window.__MINI_WHEELS_TEST__?.setVehicleState(0, {
         position: { x: 27.8, y: 0.75, z: -29.8 },
       }),
     );
     await pauseVisualFixture(page);
 
     const screenshot = await captureVisualFixture(page, fixture);
-    const snapshot = await page.evaluate(() => window.__TINY_TRACTION_TEST__?.snapshot());
+    const snapshot = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.snapshot());
     expect(screenshot.byteLength).toBeGreaterThan(20_000);
     expect(snapshot?.interactions.portals.endpoints).toHaveLength(4);
   });
@@ -36,7 +36,7 @@ test.describe("VIS-001–008 current-render evidence", () => {
     const fixture = VISUAL_FIXTURES.platform;
     await startVisualSandbox(page, fixture);
     const shuttle = await page.evaluate(() =>
-      window.__TINY_TRACTION_TEST__
+      window.__MINI_WHEELS_TEST__
         ?.snapshot()
         ?.movers.movingPlatforms.find(({ id }) => id === "horizontal-shuttle"),
     );
@@ -45,7 +45,7 @@ test.describe("VIS-001–008 current-render evidence", () => {
     }
     await page.evaluate(
       ({ x, y, z }) =>
-        window.__TINY_TRACTION_TEST__?.setVehicleState(0, {
+        window.__MINI_WHEELS_TEST__?.setVehicleState(0, {
           position: { x, y: y + 0.7, z },
         }),
       shuttle.position,
@@ -54,7 +54,7 @@ test.describe("VIS-001–008 current-render evidence", () => {
     await pauseVisualFixture(page);
 
     const screenshot = await captureVisualFixture(page, fixture);
-    const snapshot = await page.evaluate(() => window.__TINY_TRACTION_TEST__?.snapshot());
+    const snapshot = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.snapshot());
     expect(screenshot.byteLength).toBeGreaterThan(20_000);
     expect(snapshot?.vehicle.y).toBeGreaterThan(8);
   });
@@ -63,25 +63,25 @@ test.describe("VIS-001–008 current-render evidence", () => {
     const fixture = VISUAL_FIXTURES.closeApproach;
     await startVisualSandbox(page, fixture);
     await page.evaluate(() =>
-      window.__TINY_TRACTION_TEST__?.setVehicleState(0, {
+      window.__MINI_WHEELS_TEST__?.setVehicleState(0, {
         position: { x: 28, y: 0.75, z: -32.7 },
         rotation: { x: 0, y: Math.SQRT1_2, z: 0, w: Math.SQRT1_2 },
         linearVelocity: { x: -15, y: 0, z: 0 },
       }),
     );
     await page.waitForFunction(
-      () => (window.__TINY_TRACTION_TEST__?.snapshot()?.particles.liveCount ?? 0) >= 8,
+      () => (window.__MINI_WHEELS_TEST__?.snapshot()?.particles.liveCount ?? 0) >= 8,
     );
     await pauseVisualFixture(page);
     await page.evaluate(() =>
-      window.__TINY_TRACTION_TEST__?.setVehicleState(0, {
+      window.__MINI_WHEELS_TEST__?.setVehicleState(0, {
         position: { x: 15.2, y: 0.75, z: -32.7 },
         rotation: { x: 0, y: Math.SQRT1_2, z: 0, w: Math.SQRT1_2 },
       }),
     );
 
     const screenshot = await captureVisualFixture(page, fixture);
-    const snapshot = await page.evaluate(() => window.__TINY_TRACTION_TEST__?.snapshot());
+    const snapshot = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.snapshot());
     expect(screenshot.byteLength).toBeGreaterThan(20_000);
     expect(snapshot?.arena.cubes).toHaveLength(96);
     expect(snapshot?.particles.liveCount).toBeGreaterThanOrEqual(8);
@@ -93,7 +93,7 @@ test.describe("VIS-001–008 current-render evidence", () => {
     const approachYaw = (157.6 * Math.PI) / 180;
     await page.evaluate(
       ({ rotation }) =>
-        window.__TINY_TRACTION_TEST__?.setVehicleState(0, {
+        window.__MINI_WHEELS_TEST__?.setVehicleState(0, {
           position: { x: -9.33, y: 0.9, z: -16.95 },
           rotation,
           linearVelocity: { x: -3.05, y: 0, z: 7.39 },
@@ -103,7 +103,7 @@ test.describe("VIS-001–008 current-render evidence", () => {
     await page.keyboard.down("KeyW");
     await page.waitForFunction(
       () => {
-        const vehicle = window.__TINY_TRACTION_TEST__?.snapshot()?.vehicle;
+        const vehicle = window.__MINI_WHEELS_TEST__?.snapshot()?.vehicle;
         return vehicle !== undefined && vehicle.y > 2.5 && vehicle.linearVelocity.y > 0;
       },
       undefined,
@@ -113,7 +113,7 @@ test.describe("VIS-001–008 current-render evidence", () => {
     await pauseVisualFixture(page);
     await page.evaluate(
       ({ rotation }) =>
-        window.__TINY_TRACTION_TEST__?.setVehicleState(0, {
+        window.__MINI_WHEELS_TEST__?.setVehicleState(0, {
           position: { x: -13.25, y: 4.8, z: -6.99 },
           rotation,
         }),
@@ -122,7 +122,7 @@ test.describe("VIS-001–008 current-render evidence", () => {
     await waitForRenderedFrames(page);
 
     const screenshot = await captureVisualFixture(page, fixture);
-    const snapshot = await page.evaluate(() => window.__TINY_TRACTION_TEST__?.snapshot());
+    const snapshot = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.snapshot());
     expect(screenshot.byteLength).toBeGreaterThan(20_000);
     expect(snapshot?.vehicle.y).toBeGreaterThan(2.5);
   });
@@ -131,18 +131,18 @@ test.describe("VIS-001–008 current-render evidence", () => {
     const fixture = VISUAL_FIXTURES.cubeImpact;
     await startVisualSandbox(page, fixture);
     await page.evaluate(() =>
-      window.__TINY_TRACTION_TEST__?.setVehicleState(0, {
+      window.__MINI_WHEELS_TEST__?.setVehicleState(0, {
         position: { x: 28, y: 0.75, z: -32.8 },
         rotation: { x: 0, y: Math.SQRT1_2, z: 0, w: Math.SQRT1_2 },
         linearVelocity: { x: -18, y: 0, z: 0 },
       }),
     );
     await page.waitForFunction(
-      () => (window.__TINY_TRACTION_TEST__?.snapshot()?.particles.liveCount ?? 0) >= 10,
+      () => (window.__MINI_WHEELS_TEST__?.snapshot()?.particles.liveCount ?? 0) >= 10,
     );
     await pauseVisualFixture(page);
     await page.evaluate(() => {
-      const api = window.__TINY_TRACTION_TEST__;
+      const api = window.__MINI_WHEELS_TEST__;
       const cubes = api?.snapshot()?.arena.cubes ?? [];
       for (let index = 0; index < cubes.length; index += 1) {
         const cube = cubes[index];
@@ -179,7 +179,7 @@ test.describe("VIS-001–008 current-render evidence", () => {
     await waitForRenderedFrames(page);
 
     const screenshot = await captureVisualFixture(page, fixture);
-    const snapshot = await page.evaluate(() => window.__TINY_TRACTION_TEST__?.snapshot());
+    const snapshot = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.snapshot());
     const displacedCount =
       snapshot?.arena.cubes.filter(({ authoredPosition, currentPosition }) => {
         return (
@@ -199,7 +199,7 @@ test.describe("VIS-001–008 current-render evidence", () => {
     const fixture = VISUAL_FIXTURES.tenPlayer;
     await startVisualSandbox(page, fixture, 10);
     await page.evaluate(() => {
-      const api = window.__TINY_TRACTION_TEST__;
+      const api = window.__MINI_WHEELS_TEST__;
       for (let index = 0; index < 10; index += 1) {
         const angle = ((index * 36 + 1) * Math.PI) / 180;
         const outwardYaw = angle + Math.PI;
@@ -224,7 +224,7 @@ test.describe("VIS-001–008 current-render evidence", () => {
       }
     });
     await page.waitForFunction(
-      () => (window.__TINY_TRACTION_TEST__?.snapshot()?.particles.liveCount ?? 0) >= 35,
+      () => (window.__MINI_WHEELS_TEST__?.snapshot()?.particles.liveCount ?? 0) >= 35,
     );
     await pauseVisualFixture(page);
 
@@ -235,7 +235,7 @@ test.describe("VIS-001–008 current-render evidence", () => {
       { grayscale: true, showMarkers: true },
       "vis-007-ten-player-grayscale-markers-current.png",
     );
-    const snapshot = await page.evaluate(() => window.__TINY_TRACTION_TEST__?.snapshot());
+    const snapshot = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.snapshot());
     expect(colorScreenshot.byteLength).toBeGreaterThan(20_000);
     expect(grayscaleScreenshot.byteLength).toBeGreaterThan(20_000);
     expect(snapshot?.vehicles.map(({ color }) => color)).toEqual([

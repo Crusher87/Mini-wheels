@@ -4,11 +4,13 @@ import { DEFAULT_KEYBOARD_BINDINGS, type KeyboardBinding } from "./bindings";
 export interface LogicalAxes {
   readonly horizontal: number;
   readonly vertical: number;
+  readonly brake: boolean;
 }
 
 export interface MutableLogicalAxes {
   horizontal: number;
   vertical: number;
+  brake: boolean;
 }
 
 export interface InputHubHandlers {
@@ -22,7 +24,7 @@ export interface ControllerAssignmentResult {
   readonly gamepadIndex: number | null;
 }
 
-const EMPTY_AXES: LogicalAxes = Object.freeze({ horizontal: 0, vertical: 0 });
+const EMPTY_AXES: LogicalAxes = Object.freeze({ horizontal: 0, vertical: 0, brake: false });
 const EMPTY_PLAYER_SETTINGS: readonly PlayerInputSettings[] = Object.freeze(
   DEFAULT_KEYBOARD_BINDINGS.map((keyboard) =>
     Object.freeze({
@@ -242,7 +244,7 @@ export class InputHub {
   }
 
   public getPlayerAxes(playerIndex: number): LogicalAxes {
-    const axes: MutableLogicalAxes = { horizontal: 0, vertical: 0 };
+    const axes: MutableLogicalAxes = { horizontal: 0, vertical: 0, brake: false };
     this.writePlayerAxes(playerIndex, axes);
     return axes;
   }
@@ -294,6 +296,12 @@ export class InputHub {
         ),
         this.analogSensitivity,
       );
+      output.brake =
+        gamepad.mapping === "standard" &&
+        (gamepad.buttons[4]?.pressed === true ||
+          gamepad.buttons[5]?.pressed === true ||
+          (gamepad.buttons[4]?.value ?? 0) > 0.5 ||
+          (gamepad.buttons[5]?.value ?? 0) > 0.5);
       return;
     }
 
@@ -302,6 +310,7 @@ export class InputHub {
       Number(this.heldCodes.has(binding.right)) - Number(this.heldCodes.has(binding.left));
     output.vertical =
       Number(this.heldCodes.has(binding.up)) - Number(this.heldCodes.has(binding.down));
+    output.brake = this.heldCodes.has(binding.brake);
   }
 
   public get connectedGamepads(): readonly Gamepad[] {
@@ -326,6 +335,7 @@ export class InputHub {
   private clearAxes(output: MutableLogicalAxes): void {
     output.horizontal = EMPTY_AXES.horizontal;
     output.vertical = EMPTY_AXES.vertical;
+    output.brake = EMPTY_AXES.brake;
   }
 
   private rebuildAssignedCodes(): void {
@@ -339,6 +349,7 @@ export class InputHub {
       this.assignedCodes.add(settings.keyboard.down);
       this.assignedCodes.add(settings.keyboard.left);
       this.assignedCodes.add(settings.keyboard.right);
+      this.assignedCodes.add(settings.keyboard.brake);
     }
   }
 

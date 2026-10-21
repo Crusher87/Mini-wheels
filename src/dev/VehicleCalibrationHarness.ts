@@ -29,7 +29,7 @@ export interface CalibrationReport {
   readonly samples: readonly CalibrationSample[];
 }
 
-const ZERO_INPUT: LogicalAxes = Object.freeze({ horizontal: 0, vertical: 0 });
+const ZERO_INPUT: LogicalAxes = Object.freeze({ horizontal: 0, vertical: 0, brake: false });
 
 export function calibrationInputAt(
   script: CalibrationScriptName,
@@ -37,18 +37,20 @@ export function calibrationInputAt(
 ): LogicalAxes {
   switch (script) {
     case "straight-acceleration":
-      return timeSeconds < 5 ? { horizontal: 0, vertical: 1 } : ZERO_INPUT;
+      return timeSeconds < 5 ? { horizontal: 0, vertical: 1, brake: false } : ZERO_INPUT;
     case "coast":
-      return timeSeconds < 3 ? { horizontal: 0, vertical: 1 } : ZERO_INPUT;
+      return timeSeconds < 3 ? { horizontal: 0, vertical: 1, brake: false } : ZERO_INPUT;
     case "hard-brake":
-      return timeSeconds < 3 ? { horizontal: 0, vertical: 1 } : { horizontal: 0, vertical: -1 };
+      return timeSeconds < 3
+        ? { horizontal: 0, vertical: 1, brake: false }
+        : { horizontal: 0, vertical: -1, brake: false };
     case "full-steering-left":
-      return { horizontal: -1, vertical: 1 };
+      return { horizontal: -1, vertical: 1, brake: false };
     case "full-steering-right":
-      return { horizontal: 1, vertical: 1 };
+      return { horizontal: 1, vertical: 1, brake: false };
     case "slalom": {
       const horizontal = Math.floor(timeSeconds / 0.75) % 2 === 0 ? -1 : 1;
-      return { horizontal, vertical: 1 };
+      return { horizontal, vertical: 1, brake: false };
     }
   }
 }
@@ -98,6 +100,8 @@ export class VehicleCalibrationRecorder {
       "engineForce",
       "steering",
       "hardBraking",
+      "braking",
+      "drifting",
     ] as const satisfies readonly (keyof CalibrationSample)[];
     const lines = [columns.join(",")];
     for (const sample of this.samples) {

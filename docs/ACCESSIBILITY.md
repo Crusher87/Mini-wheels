@@ -1,6 +1,6 @@
 # Accessibility and usability
 
-Status date: 2026-07-28 (America/Vancouver)  
+Status date: 2026-07-30 (America/Vancouver)
 Relevant acceptance IDs: `MP-007`, `UI-001`, `A11Y-001`–`A11Y-003`,
 `WEB-003`, `WEB-007`
 
@@ -9,7 +9,7 @@ conformance statement, accessibility certification or legal sign-off.
 
 ## Current evidence
 
-- `npm run test` passed 112/112 unit tests. Relevant files are
+- `npm run test` passed 113/113 unit tests. Relevant files are
   `tests/unit/ControllerNavigation.test.ts`,
   `tests/unit/KeyboardBindings.test.ts`,
   `tests/unit/InputHub.test.ts`,
@@ -18,7 +18,7 @@ conformance statement, accessibility certification or legal sign-off.
   `tests/unit/AutomaticUprightRecovery.test.ts` and
   `tests/unit/AudioService.test.ts`.
 - The full Chromium/Firefox/WebKit matrix passes keyboard and
-  synthetic-controller navigation, disabled modes, schema-v2 presentation
+  synthetic-controller navigation, disabled modes, schema-v4 presentation
   settings, rebinding/conflicts, mixed devices, Menu pause, blur/device-loss
   safety, unavailable Gamepad API, and unavailable audio fallback.
 - Native visual evidence includes a technically reviewed grayscale P1–P10
@@ -29,25 +29,25 @@ conformance statement, accessibility certification or legal sign-off.
 
 ## Implemented behavior
 
-| Requirement                                   | Implementation                                                                                               | Verification                                                                      |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
-| Rebind Up/Down/Left/Right per keyboard player | Ten independent `KeyboardEvent.code` profiles and capture UI                                                 | `PASS` automated in Chromium, Firefox, and WebKit                                 |
-| Controller assignment                         | Exclusive per-player assignment, ID/mapping hints and explicit non-standard axis calibration                 | `PARTIAL`; synthetic/unit coverage, real hardware not run                         |
-| Keyboard-only fallback                        | All gameplay/menu routes retain keyboard support when Gamepad API yields no pads                             | `PASS` automated in all three engines                                             |
-| Blur/disconnect safety                        | Held input clears; active assigned-controller loss pauses and identifies players                             | `PASS` synthetic matrix; physical device-loss review open                         |
-| Color-independent identity                    | P1–P10 text plus ten distinct symbols, dark backing and light/dark keylines                                  | `PARTIAL`; grayscale technical capture passes, independent identification remains |
-| High-contrast focus                           | `:focus-visible` uses a 4 px white outline plus a dark outer keyline                                         | `PARTIAL`; visible in targeted UI run, contrast has not been measured             |
-| Semantic UI                                   | Native buttons, labels, selects, ranges, fieldsets, headings, status regions and pause dialog                | `PARTIAL`; DOM inspection and targeted UI automation only                         |
-| Keyboard menu navigation                      | Arrow navigation, Enter activation, Escape/back and focus boundaries                                         | `PASS` across all panels covered by the three-engine UI route                     |
-| Controller menu navigation                    | Standard D-pad/left stick, A confirm and B cancel with repeat/hysteresis                                     | `PARTIAL`; synthetic matrix passes, physical hardware remains                     |
-| Focus return/containment                      | Visible screen receives the first focusable control; pause is an `aria-modal` dialog                         | `PARTIAL`; full forward/reverse focus-order and restoration audit not run         |
-| Reduced motion                                | OS preference seeds safe defaults; manual option suppresses optional CSS motion and adjusts camera/particles | `PARTIAL`; settings/unit coverage, human motion review not run                    |
-| Adjustable presentation                       | UI scale, marker size, camera smoothing, particle density, AO and vignette controls                          | `PARTIAL`; targeted schema-v2 option test passed                                  |
-| High-contrast interactables                   | Stronger portal/booster treatment setting                                                                    | `PARTIAL`; hook is automated, visual contrast review not run                      |
-| Optional upright recovery                     | Settled upside-down cars can be recovered when enabled                                                       | `PARTIAL`; eligibility logic unit-tested, live behavior review not run            |
-| Adjustable controller response                | Dead zone and sensitivity are separately persisted and applied                                               | `PARTIAL`; settings/input unit coverage                                           |
-| Adjustable audio                              | Master/effects/music buses are persisted; cues never carry required information alone                        | `PARTIAL`; procedural service unit-tested, real output review not run             |
-| Trusted audio activation                      | No `AudioContext` is created before activation; unavailable audio fails softly                               | `PARTIAL`; browser matrix passes, physical listening/output review remains        |
+| Requirement                                    | Implementation                                                                                               | Verification                                                                      |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| Rebind drive/brake actions per keyboard player | Ten independent `KeyboardEvent.code` profiles and capture UI                                                 | `PASS` automated in Chromium; prior direction coverage passed all three engines   |
+| Controller assignment                          | Exclusive per-player assignment, ID/mapping hints and explicit non-standard axis calibration                 | `PARTIAL`; synthetic/unit coverage, real hardware not run                         |
+| Keyboard-only fallback                         | All gameplay/menu routes retain keyboard support when Gamepad API yields no pads                             | `PASS` automated in all three engines                                             |
+| Blur/disconnect safety                         | Held input clears; active assigned-controller loss pauses and identifies players                             | `PASS` synthetic matrix; physical device-loss review open                         |
+| Color-independent identity                     | P1–P10 text plus ten distinct symbols, dark backing and light/dark keylines                                  | `PARTIAL`; grayscale technical capture passes, independent identification remains |
+| High-contrast focus                            | `:focus-visible` uses a 4 px white outline plus a dark outer keyline                                         | `PARTIAL`; visible in targeted UI run, contrast has not been measured             |
+| Semantic UI                                    | Native buttons, labels, selects, ranges, fieldsets, headings, status regions and pause dialog                | `PARTIAL`; DOM inspection and targeted UI automation only                         |
+| Keyboard menu navigation                       | Arrow navigation, Enter activation, Escape/back and focus boundaries                                         | `PASS` across all panels covered by the three-engine UI route                     |
+| Controller menu navigation                     | Standard D-pad/left stick, A confirm and B cancel with repeat/hysteresis                                     | `PARTIAL`; synthetic matrix passes, physical hardware remains                     |
+| Focus return/containment                       | Visible screen receives the first focusable control; pause is an `aria-modal` dialog                         | `PARTIAL`; full forward/reverse focus-order and restoration audit not run         |
+| Reduced motion                                 | OS preference seeds safe defaults; manual option suppresses optional CSS motion and adjusts camera/particles | `PARTIAL`; settings/unit coverage, human motion review not run                    |
+| Adjustable presentation                        | UI scale, marker size, camera smoothing, particle density, AO and vignette controls                          | `PARTIAL`; targeted schema-v4 option test passed                                  |
+| High-contrast interactables                    | Stronger portal/booster treatment setting                                                                    | `PARTIAL`; hook is automated, visual contrast review not run                      |
+| Optional upright recovery                      | Settled upside-down cars can be recovered when enabled                                                       | `PARTIAL`; eligibility logic unit-tested, live behavior review not run            |
+| Adjustable controller response                 | Dead zone and sensitivity are separately persisted and applied                                               | `PARTIAL`; settings/input unit coverage                                           |
+| Adjustable audio                               | Master/effects/music buses are persisted; cues never carry required information alone                        | `PARTIAL`; procedural service unit-tested, real output review not run             |
+| Trusted audio activation                       | No `AudioContext` is created before activation; unavailable audio fails softly                               | `PARTIAL`; browser matrix passes, physical listening/output review remains        |
 
 The music-volume control currently adjusts a reserved music bus; this Profile A
 build does not create a music source. The label is therefore a forward-
@@ -55,8 +55,9 @@ compatible mix control, not a claim that music ships.
 
 ## Input design
 
-Gameplay requires only two continuous axes. There is no required jump, boost,
-handbrake, camera, weapon or manual-respawn control.
+Gameplay uses two continuous axes plus a Brake/Drift action. There is no
+required jump, boost, camera, weapon or manual-respawn control. Standard pads
+map Brake/Drift to either shoulder button.
 
 Binding capture:
 
@@ -66,7 +67,7 @@ Binding capture:
 - rejects same-player opposite-direction duplication;
 - warns when a physical key is shared across players;
 - reserves `Escape` and `KeyP` for pause;
-- persists valid values through schema-v2 settings validation.
+- persists valid values through schema-v4 settings validation.
 
 Ten logical keyboard profiles are supplied without silent overlap. This does
 not guarantee that a physical keyboard can register every simultaneous

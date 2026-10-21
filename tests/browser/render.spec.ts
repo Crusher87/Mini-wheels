@@ -15,7 +15,7 @@ test("UI-003/005/006: render options reconfigure live buffers and passes", async
   await page.locator("#ambient-occlusion").uncheck();
   await page.locator("#vignette").uncheck();
   await page.waitForFunction((expectedRatio) => {
-    const rendering = window.__TINY_TRACTION_TEST__?.renderSnapshot();
+    const rendering = window.__MINI_WHEELS_TEST__?.renderSnapshot();
     return (
       rendering?.postProcessing.internalSize.effectivePixelRatio === expectedRatio &&
       rendering.postProcessing.passes.find((pass) => pass.name === "fxaa")?.enabled === false &&
@@ -23,7 +23,7 @@ test("UI-003/005/006: render options reconfigure live buffers and passes", async
     );
   }, expectedOffRatio);
 
-  const off = await page.evaluate(() => window.__TINY_TRACTION_TEST__?.renderSnapshot());
+  const off = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.renderSnapshot());
   expect(off?.postProcessing.passes).toEqual([
     { name: "render", enabled: true },
     { name: "ambient-occlusion", enabled: false },
@@ -39,7 +39,7 @@ test("UI-003/005/006: render options reconfigure live buffers and passes", async
   await page.locator("#aa-quality").selectOption("fxaa");
   await expect
     .poll(async () => {
-      const rendering = await page.evaluate(() => window.__TINY_TRACTION_TEST__?.renderSnapshot());
+      const rendering = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.renderSnapshot());
       return rendering?.postProcessing.passes.find((pass) => pass.name === "fxaa")?.enabled;
     })
     .toBe(true);
@@ -49,7 +49,7 @@ test("UI-003/005/006: render options reconfigure live buffers and passes", async
   await page.locator("#ambient-occlusion").check();
   await page.locator("#vignette").check();
   await expect
-    .poll(async () => page.evaluate(() => window.__TINY_TRACTION_TEST__?.renderSnapshot()))
+    .poll(async () => page.evaluate(() => window.__MINI_WHEELS_TEST__?.renderSnapshot()))
     .toMatchObject({
       postProcessing: {
         passes: [
@@ -66,7 +66,7 @@ test("UI-003/005/006: render options reconfigure live buffers and passes", async
   await page.locator("#shadow-quality").selectOption("low");
   await expect
     .poll(async () => {
-      const rendering = await page.evaluate(() => window.__TINY_TRACTION_TEST__?.renderSnapshot());
+      const rendering = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.renderSnapshot());
       return rendering?.postProcessing.passes.find((pass) => pass.name === "ambient-occlusion")
         ?.enabled;
     })
@@ -78,12 +78,12 @@ test("UI-003/005/006: render options reconfigure live buffers and passes", async
   const expectedHighRatio = await page.evaluate(() => Math.min(window.devicePixelRatio * 1.25, 2));
   await expect
     .poll(async () => {
-      const rendering = await page.evaluate(() => window.__TINY_TRACTION_TEST__?.renderSnapshot());
+      const rendering = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.renderSnapshot());
       return rendering?.postProcessing.internalSize.effectivePixelRatio;
     })
     .toBe(expectedHighRatio);
 
-  const high = await page.evaluate(() => window.__TINY_TRACTION_TEST__?.renderSnapshot());
+  const high = await page.evaluate(() => window.__MINI_WHEELS_TEST__?.renderSnapshot());
   expect(high?.postProcessing.passes.find((pass) => pass.name === "smaa")?.enabled).toBe(true);
   expect(high?.resources.geometries).toBeGreaterThanOrEqual(0);
   expect(high?.resources.textures).toBeGreaterThanOrEqual(0);

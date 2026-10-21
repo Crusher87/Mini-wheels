@@ -6,25 +6,26 @@
     <meta name="theme-color" content="#a5b3c4" />
     <meta
       name="description"
-      content="Tiny Traction, a clean-room local multiplayer physics sandbox."
+      content="Mini Wheels, a clean-room local multiplayer physics sandbox."
     />
-    <title>Tiny Traction — Physics Sandbox</title>
+    <title>Mini Wheels — Physics Sandbox</title>
   </head>
   <body>
     <main
       id="game-root"
       class="game-root"
       tabindex="-1"
-      aria-label="Tiny Traction local multiplayer physics sandbox"
+      aria-label="Mini Wheels local multiplayer physics sandbox"
     >
-      <canvas id="game-canvas" aria-label="3D physics sandbox"></canvas>
+      <canvas id="game-canvas" aria-label="3D physics sandbox and map editor preview"></canvas>
       <div id="player-markers" class="player-markers" aria-hidden="true"></div>
+      <div id="race-hud" class="race-hud" aria-live="polite" hidden></div>
 
       <div id="ui-layer" class="ui-layer">
         <section id="screen-loading" class="screen screen--centered" aria-live="polite">
           <div class="boot-card">
             <span class="eyebrow">SYSTEM CHECK</span>
-            <h1>TINY<br /><span>TRACTION</span></h1>
+            <h1>MINI<br /><span>WHEELS</span></h1>
             <div class="loading-track" aria-hidden="true"><i></i></div>
             <p id="loading-status">Preparing renderer and physics…</p>
           </div>
@@ -33,7 +34,7 @@
         <section id="screen-activation" class="screen screen--centered" hidden>
           <div class="activation-card">
             <span class="eyebrow">LOCAL PHYSICS LAB</span>
-            <h1>TINY<br /><span>TRACTION</span></h1>
+            <h1>MINI<br /><span>WHEELS</span></h1>
             <p>One screen. Ten tiny cars. A whole lot of momentum.</p>
             <button id="activate-button" class="button button--primary button--wide" type="button">
               <span>START ENGINE</span>
@@ -46,7 +47,7 @@
         <section id="screen-main" class="screen screen--menu" hidden>
           <header class="brand-lockup">
             <span class="eyebrow">ALPHA SANDBOX / WEB BUILD</span>
-            <h1>TINY<br /><span>TRACTION</span></h1>
+            <h1>MINI<br /><span>WHEELS</span></h1>
             <p>LOCAL PHYSICS FOR 1–10 PLAYERS</p>
           </header>
           <nav class="menu-stack" aria-label="Main menu">
@@ -55,6 +56,9 @@
             </button>
             <button class="button" type="button" data-screen-target="players">
               <span>PLAYERS</span><span id="menu-player-count">01</span>
+            </button>
+            <button id="editor-button" class="button" type="button">
+              <span>CREATE</span><span aria-hidden="true">＋</span>
             </button>
             <button class="button" type="button" data-screen-target="options">
               <span>OPTIONS</span><span aria-hidden="true">◆</span>
@@ -100,7 +104,7 @@
             </button>
             <button id="mode-iceage" class="mode-card mode-card--disabled" type="button" disabled>
               <span class="mode-card__index">03</span>
-              <strong>ICEAGE</strong>
+              <strong>ICE AGE</strong>
               <small>MAP TEST · UNSHIPPED</small>
               <b>UNAVAILABLE</b>
             </button>
@@ -111,7 +115,7 @@
               disabled
             >
               <span class="mode-card__index">04</span>
-              <strong>ICEDIAMONDS</strong>
+              <strong>ICE DIAMONDS</strong>
               <small>MAP TEST · UNSHIPPED</small>
               <b>UNAVAILABLE</b>
             </button>
@@ -122,7 +126,7 @@
               disabled
             >
               <span class="mode-card__index">05</span>
-              <strong>STONEHEDGE</strong>
+              <strong>STONE HEDGE</strong>
               <small>MAP TEST · UNSHIPPED</small>
               <b>UNAVAILABLE</b>
             </button>
@@ -180,19 +184,26 @@
               </label>
 
               <div id="keyboard-settings">
-                <p class="setting-card__label">DIRECTION BINDINGS</p>
+                <p class="setting-card__label">DRIVE BINDINGS</p>
                 <div class="binding-grid">
                   <button class="binding-button" type="button" data-binding-direction="up">
-                    <small>UP</small><strong id="binding-up">KeyW</strong>
+                    <small>FORWARD</small><strong id="binding-up">KeyW</strong>
                   </button>
                   <button class="binding-button" type="button" data-binding-direction="down">
-                    <small>DOWN</small><strong id="binding-down">KeyS</strong>
+                    <small>REVERSE</small><strong id="binding-down">KeyS</strong>
                   </button>
                   <button class="binding-button" type="button" data-binding-direction="left">
-                    <small>LEFT</small><strong id="binding-left">KeyA</strong>
+                    <small>STEER LEFT</small><strong id="binding-left">KeyA</strong>
                   </button>
                   <button class="binding-button" type="button" data-binding-direction="right">
-                    <small>RIGHT</small><strong id="binding-right">KeyD</strong>
+                    <small>STEER RIGHT</small><strong id="binding-right">KeyD</strong>
+                  </button>
+                  <button
+                    class="binding-button binding-button--wide"
+                    type="button"
+                    data-binding-direction="brake"
+                  >
+                    <small>BRAKE / DRIFT</small><strong id="binding-brake">Left Shift</strong>
                   </button>
                 </div>
               </div>
@@ -207,6 +218,7 @@
                 <small id="controller-status">
                   Controllers become visible after the first trusted interaction.
                 </small>
+                <small class="controller-action-hint">BRAKE / DRIFT: LB OR RB</small>
                 <fieldset id="controller-calibration" class="controller-calibration" hidden>
                   <legend>NON-STANDARD AXIS CALIBRATION</legend>
                   <div class="calibration-grid">
@@ -492,6 +504,1692 @@
               </p>
             </div>
           </form>
+        </section>
+
+        <section
+          id="screen-map-library"
+          class="screen screen--panel map-library-screen"
+          aria-labelledby="map-library-heading"
+          hidden
+        >
+          <header class="panel-heading">
+            <div>
+              <span class="eyebrow">BUILD · SAVE · TEST</span>
+              <h2 id="map-library-heading">MAP LIBRARY</h2>
+              <p class="panel-heading__summary">
+                Find, favorite, back up, restore, and keep building every local map.
+              </p>
+            </div>
+            <button
+              id="map-library-back-button"
+              class="icon-button"
+              type="button"
+              aria-label="Back"
+            >
+              ←
+            </button>
+          </header>
+
+          <div class="map-library-toolbar">
+            <button id="create-map-button" class="button button--primary" type="button">
+              <span>NEW PLAYGROUND</span><span aria-hidden="true">＋</span>
+            </button>
+            <label class="button button--quiet map-import-button">
+              <span>IMPORT JSON</span><span aria-hidden="true">↑</span>
+              <input id="map-import-input" type="file" accept="application/json,.json" />
+            </label>
+            <span id="map-storage-status" class="status-chip" aria-live="polite">
+              CHECKING LOCAL STORAGE…
+            </span>
+          </div>
+
+          <div class="map-library-filters" aria-label="Map library filters">
+            <label>
+              <span>SEARCH</span>
+              <input id="map-library-search" type="search" placeholder="Name or tag" />
+            </label>
+            <label>
+              <span>SORT</span>
+              <select id="map-library-sort">
+                <option value="recent">RECENTLY EDITED</option>
+                <option value="name">NAME A–Z</option>
+                <option value="created">NEWEST CREATED</option>
+              </select>
+            </label>
+            <label class="map-library-toggle">
+              <input id="map-library-favorites" type="checkbox" />
+              <span>FAVORITES ONLY</span>
+            </label>
+            <button id="map-library-trash-toggle" class="button button--quiet" type="button">
+              VIEW TRASH
+            </button>
+          </div>
+
+          <div class="map-library-section">
+            <div class="section-heading">
+              <div>
+                <span class="eyebrow">PROTECTED STARTER</span>
+                <h3>START WITH SOMETHING</h3>
+              </div>
+            </div>
+            <article class="map-card map-card--built-in">
+              <div class="map-card__preview" aria-hidden="true"><i></i><i></i><i></i></div>
+              <div class="map-card__body">
+                <span class="status-chip">BUILT-IN · LOCKED</span>
+                <h3>STARTER PLAYGROUND</h3>
+                <p>A clean floor, a ten-car start grid, and room for big ideas.</p>
+                <button id="create-from-starter-button" class="button" type="button">
+                  <span>EDIT A COPY</span><span aria-hidden="true">→</span>
+                </button>
+              </div>
+            </article>
+          </div>
+
+          <div class="map-library-section">
+            <div class="section-heading">
+              <div>
+                <span class="eyebrow">SAVED ON THIS BROWSER</span>
+                <h3>YOUR MAPS</h3>
+              </div>
+              <span id="map-library-count" class="status-chip">0 MAPS</span>
+            </div>
+            <section id="map-restore-panel" class="map-restore-panel" hidden>
+              <div>
+                <span class="eyebrow">SAFE HISTORY</span>
+                <h3 id="map-restore-heading">RESTORE POINTS</h3>
+                <p>Recover an older revision as a new copy. Your current map stays untouched.</p>
+              </div>
+              <button
+                id="map-restore-close"
+                class="icon-button"
+                type="button"
+                aria-label="Close restore points"
+              >
+                ×
+              </button>
+              <div id="map-restore-list" class="map-restore-list"></div>
+            </section>
+            <div id="user-map-list" class="user-map-list" aria-live="polite"></div>
+            <p id="map-library-empty" class="empty-state">
+              No maps yet. Make a playground and it will appear here.
+            </p>
+          </div>
+        </section>
+
+        <section
+          id="screen-editor"
+          class="screen screen--editor"
+          aria-labelledby="editor-heading"
+          hidden
+        >
+          <header class="editor-topbar">
+            <button id="editor-back-button" class="icon-button" type="button" aria-label="Library">
+              ←
+            </button>
+            <label class="editor-title-field" for="editor-map-name">
+              <span>MAP NAME</span>
+              <input id="editor-map-name" maxlength="80" value="My First Playground" />
+            </label>
+            <span id="editor-save-status" class="status-chip" aria-live="polite"
+              >SAVED LOCALLY</span
+            >
+            <div class="editor-history-controls" aria-label="Edit history">
+              <button id="editor-undo-button" class="icon-button" type="button" disabled>
+                UNDO
+              </button>
+              <button id="editor-redo-button" class="icon-button" type="button" disabled>
+                REDO
+              </button>
+              <button
+                id="editor-top-down-button"
+                class="icon-button"
+                type="button"
+                aria-pressed="false"
+                title="Toggle top-down view"
+              >
+                TOP
+              </button>
+            </div>
+            <div class="editor-transform-controls" aria-label="Transform tool">
+              <button
+                class="icon-button is-active"
+                type="button"
+                data-editor-transform="move"
+                aria-pressed="true"
+              >
+                MOVE
+              </button>
+              <button
+                class="icon-button"
+                type="button"
+                data-editor-transform="rotate"
+                aria-pressed="false"
+              >
+                TURN
+              </button>
+              <button
+                class="icon-button"
+                type="button"
+                data-editor-transform="scale"
+                aria-pressed="false"
+              >
+                SIZE
+              </button>
+            </div>
+            <button id="editor-help-button" class="icon-button" type="button" title="Tutorial">
+              ?
+            </button>
+            <button id="editor-test-button" class="button editor-test-button" type="button">
+              TEST NOW
+            </button>
+            <button id="editor-save-button" class="button button--primary" type="button">
+              <span>SAVE MAP</span><span aria-hidden="true">◆</span>
+            </button>
+          </header>
+
+          <aside class="editor-tray" aria-label="Object tray">
+            <span class="eyebrow">OBJECTS</span>
+            <h2 id="editor-heading">BUILD</h2>
+            <label class="editor-search" for="editor-object-search">
+              <span class="sr-only">Search objects</span>
+              <input id="editor-object-search" type="search" placeholder="Search objects" />
+            </label>
+            <div class="editor-asset-list" aria-label="Built-in construction assets">
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="floor.rectangle"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">▰</span>
+                <strong>FLOOR</strong>
+                <small>CLICK OR DRAG</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="floor.circle"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#9679;</span>
+                <strong>CIRCLE FLOOR</strong>
+                <small>CLICK TO PLACE</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="floor.rounded"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#9648;</span>
+                <strong>ROUNDED</strong>
+                <small>CLICK TO PLACE</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="floor.polygon"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#11041;</span>
+                <strong>POLYGON</strong>
+                <small>CLICK TO PLACE</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="floor.freeform"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#8764;</span>
+                <strong>FREEFORM</strong>
+                <small>PRESS + DRAW</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="floor.void-base"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#9671;</span>
+                <strong>VOID BASE</strong>
+                <small>CLICK TO PLACE</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="shape.block"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#9632;</span>
+                <strong>BLOCK</strong>
+                <small>CLICK TO PLACE</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="shape.column"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#9679;</span>
+                <strong>COLUMN</strong>
+                <small>CLICK TO PLACE</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="physics.ball"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#9679;</span>
+                <strong>PHYSICS BALL</strong>
+                <small>ROLLS + BOUNCES</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="physics.cube"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#9670;</span>
+                <strong>PHYSICS CUBE</strong>
+                <small>PUSHABLE</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="physics.domino"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#9646;</span>
+                <strong>PHYSICS DOMINO</strong>
+                <small>KNOCK-DOWN OBSTACLE</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="motion.moving-platform"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#8597;</span>
+                <strong>MOVING PLATFORM</strong>
+                <small>LIFT OR SHUTTLE</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="motion.rotating-bar"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#8635;</span>
+                <strong>ROTATING BAR</strong>
+                <small>SPINNING OBSTACLE</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="motion.door"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#9637;</span>
+                <strong>MOVING DOOR</strong>
+                <small>OPENS + CLOSES</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="interaction.button"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#9679;</span>
+                <strong>BIG BUTTON</strong>
+                <small>PRESS TO ACTIVATE</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="interaction.pressure-plate"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#9648;</span>
+                <strong>PRESSURE PLATE</strong>
+                <small>HOLDS WHILE OCCUPIED</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="interaction.trigger-zone"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#9633;</span>
+                <strong>TRIGGER ZONE</strong>
+                <small>ENTER OR EXIT</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="interaction.timer"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#9719;</span>
+                <strong>TIMER</strong>
+                <small>WAIT, THEN ACT</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="interaction.counter"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">#</span>
+                <strong>COUNTER</strong>
+                <small>ACT AT A NUMBER</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="travel.boost-pad"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#10148;</span>
+                <strong>BOOST PAD</strong>
+                <small>FAST FORWARD</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="travel.launch-pad"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#10548;</span>
+                <strong>LAUNCH PAD</strong>
+                <small>FORWARD + UP</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="travel.bounce-pad"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#8593;</span>
+                <strong>BOUNCE PAD</strong>
+                <small>BOUNCE UP</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="travel.slow-zone"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#8779;</span>
+                <strong>SLOW ZONE</strong>
+                <small>CUTS SPEED</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="travel.portal"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#9678;</span>
+                <strong>PORTAL</strong>
+                <small>PLACE TWO + LINK</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="travel.direction-arrow"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#10140;</span>
+                <strong>DIRECTION ARROW</strong>
+                <small>SHOW THE WAY</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="decoration.arrow-sign"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#10143;</span>
+                <strong>ARROW SIGN</strong>
+                <small>DECORATIVE OR SOLID</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="decoration.point-light"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#10022;</span>
+                <strong>POINT LIGHT</strong>
+                <small>LIGHT AN AREA</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="decoration.color-strip"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#9644;</span>
+                <strong>COLOR STRIP</strong>
+                <small>NON-BLOCKING GLOW</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="decoration.sculpture"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#9670;</span>
+                <strong>TOY SCULPTURE</strong>
+                <small>THEMED MAP PROP</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="decoration.effect-emitter"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#10022;</span>
+                <strong>EFFECT EMITTER</strong>
+                <small>SPARKS + CONFETTI</small>
+              </button>
+              <button
+                id="editor-track-tool-button"
+                class="editor-asset-card editor-asset-card--track"
+                type="button"
+                data-editor-track-tool
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">〰</span>
+                <strong>TRACK</strong>
+                <small>PRESS + DRAG</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="track.modular-straight"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#9552;</span>
+                <strong>ROAD STRAIGHT</strong>
+                <small>CLICK TO PLACE</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="track.modular-corner"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#8989;</span>
+                <strong>ROAD CORNER</strong>
+                <small>CLICK TO PLACE</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="track.bridge"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#9648;</span>
+                <strong>BRIDGE DECK</strong>
+                <small>CLICK TO PLACE</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="track.guard-rail"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#9473;</span>
+                <strong>GUARD RAIL</strong>
+                <small>CLICK TO PLACE</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="track.overpass-support"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#928;</span>
+                <strong>OVERPASS SUPPORT</strong>
+                <small>CLICK TO PLACE</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="track.tunnel"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#8745;</span>
+                <strong>TUNNEL</strong>
+                <small>DRIVE THROUGH</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="track.barrier"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#9644;</span>
+                <strong>BARRIER</strong>
+                <small>CLICK TO PLACE</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="track.ramp"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#9698;</span>
+                <strong>RAMP</strong>
+                <small>CLICK TO PLACE</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="track.jump"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#8599;</span>
+                <strong>JUMP</strong>
+                <small>CLICK TO PLACE</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="race.start-grid"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">⌁</span>
+                <strong>START GRID</strong>
+                <small>CLICK, THEN PLACE</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="race.player-spawn"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#9650;</span>
+                <strong>PLAYER SPAWN</strong>
+                <small>CLICK TO PLACE</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="race.checkpoint"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#9671;</span>
+                <strong>CHECKPOINT</strong>
+                <small>DRIVE THROUGH</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="race.finish-gate"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#9873;</span>
+                <strong>FINISH GATE</strong>
+                <small>DRIVE THROUGH</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="race.shortcut-marker"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">S</span>
+                <strong>SHORTCUT MARKER</strong>
+                <small>DRIVE THROUGH</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="race.recovery-volume"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">&#8635;</span>
+                <strong>RECOVERY VOLUME</strong>
+                <small>NON-BLOCKING</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="race.recovery-pose"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">R</span>
+                <strong>SAFE RECOVERY</strong>
+                <small>MARKS SAFE POSE</small>
+              </button>
+              <button
+                class="editor-asset-card"
+                type="button"
+                data-editor-asset="race.out-of-bounds-volume"
+                aria-pressed="false"
+              >
+                <span aria-hidden="true">!</span>
+                <strong>OUT OF BOUNDS</strong>
+                <small>NON-BLOCKING</small>
+              </button>
+            </div>
+            <p class="editor-phase-note">
+              Click to place the current floor size, or drag out a rectangle. Use the wheel to
+              resize; hold Shift for height or Ctrl for rotation. Escape returns to selection.
+            </p>
+            <fieldset class="editor-snap-controls">
+              <legend>SNAPPING</legend>
+              <label for="editor-grid-snap">
+                <input id="editor-grid-snap" type="checkbox" />
+                <span>GRID SNAP</span>
+              </label>
+              <label for="editor-grid-size">
+                <span>GRID SIZE</span>
+                <select id="editor-grid-size">
+                  <option value="0.5">0.5 M</option>
+                  <option value="1" selected>1 M</option>
+                  <option value="2">2 M</option>
+                </select>
+              </label>
+              <label for="editor-angle-snap">
+                <input id="editor-angle-snap" type="checkbox" />
+                <span>15° ANGLE SNAP</span>
+              </label>
+              <label for="editor-surface-snap">
+                <input id="editor-surface-snap" type="checkbox" checked />
+                <span>STACK ON SURFACES</span>
+              </label>
+            </fieldset>
+            <section class="editor-prefab-library" aria-labelledby="editor-prefab-heading">
+              <span class="eyebrow">MY PREFABS</span>
+              <h3 id="editor-prefab-heading">REUSABLE BUILDS</h3>
+              <div id="editor-prefab-list" class="editor-prefab-list"></div>
+              <p id="editor-prefab-empty" class="editor-phase-note">
+                Select a build and save it as a prefab to reuse it in any map.
+              </p>
+            </section>
+          </aside>
+
+          <div id="editor-viewport-chrome" class="editor-viewport-chrome">
+            <span aria-hidden="true">BUILD VIEW</span>
+            <label class="editor-zoom-control" for="editor-zoom-slider">
+              <span>ZOOM</span>
+              <input
+                id="editor-zoom-slider"
+                type="range"
+                min="0.15"
+                max="3.5"
+                step="0.05"
+                value="1"
+                aria-label="Editor camera zoom"
+              />
+              <output id="editor-zoom-output" for="editor-zoom-slider">100%</output>
+            </label>
+            <output id="editor-hover-label" class="editor-hover-label" aria-live="polite" hidden>
+              HOVER
+            </output>
+            <span aria-hidden="true">RIGHT DRAG ORBIT · MIDDLE DRAG PAN · ALT+WHEEL ZOOM</span>
+            <output
+              id="editor-wheel-hud"
+              class="editor-wheel-hud"
+              aria-live="polite"
+              hidden
+            ></output>
+            <div id="editor-selection-marquee" class="editor-selection-marquee" hidden></div>
+            <section id="editor-tutorial" class="editor-tutorial" aria-live="polite" hidden>
+              <span id="editor-tutorial-step" class="status-chip">1 OF 7</span>
+              <strong id="editor-tutorial-instruction">Move the camera.</strong>
+              <p id="editor-tutorial-detail">Right-drag to orbit or middle-drag to pan.</p>
+              <div>
+                <button id="editor-tutorial-show-button" class="button button--quiet" type="button">
+                  SHOW ME
+                </button>
+                <button
+                  id="editor-tutorial-next-button"
+                  class="button button--primary"
+                  type="button"
+                >
+                  NEXT
+                </button>
+                <button id="editor-tutorial-skip-button" class="button button--quiet" type="button">
+                  SKIP
+                </button>
+              </div>
+            </section>
+          </div>
+
+          <aside class="editor-inspector" aria-label="Map inspector">
+            <section id="editor-track-panel" class="editor-selection-panel" hidden>
+              <span class="eyebrow">SELECTED</span>
+              <h3>SMOOTH TRACK</h3>
+              <div class="editor-transform-grid">
+                <label for="editor-track-width">
+                  <span>WIDTH</span>
+                  <input id="editor-track-width" type="number" step="0.5" min="1" max="100" />
+                </label>
+                <label for="editor-track-elevation">
+                  <span>ELEVATION</span>
+                  <input id="editor-track-elevation" type="number" step="0.25" />
+                </label>
+                <label class="editor-transform-grid__wide" for="editor-track-bank">
+                  <span>BANK ANGLE</span>
+                  <input id="editor-track-bank" type="number" step="2.5" min="-60" max="60" />
+                </label>
+              </div>
+              <fieldset class="editor-track-walls">
+                <legend>TRACK WALLS</legend>
+                <label for="editor-track-wall-left">
+                  <input id="editor-track-wall-left" type="checkbox" />
+                  <span>LEFT WALL</span>
+                </label>
+                <label for="editor-track-wall-right">
+                  <input id="editor-track-wall-right" type="checkbox" />
+                  <span>RIGHT WALL</span>
+                </label>
+              </fieldset>
+              <fieldset class="editor-track-wall-brush">
+                <legend>WALL PAINT BRUSH</legend>
+                <p>Choose a side, then drag along the road.</p>
+                <div class="editor-track-wall-brush__actions">
+                  <button
+                    id="editor-select-track-range-button"
+                    class="button button--quiet editor-track-wall-brush__select"
+                    type="button"
+                  >
+                    SELECT RANGE
+                  </button>
+                  <button
+                    class="button button--quiet"
+                    type="button"
+                    data-editor-wall-brush="paint-left"
+                  >
+                    + LEFT
+                  </button>
+                  <button
+                    class="button button--quiet"
+                    type="button"
+                    data-editor-wall-brush="paint-right"
+                  >
+                    + RIGHT
+                  </button>
+                  <button
+                    class="button button--quiet"
+                    type="button"
+                    data-editor-wall-brush="paint-both"
+                  >
+                    + BOTH
+                  </button>
+                  <button
+                    class="button button--danger"
+                    type="button"
+                    data-editor-wall-brush="erase-both"
+                  >
+                    ERASE
+                  </button>
+                </div>
+              </fieldset>
+              <section id="editor-track-range-panel" class="editor-track-range-panel" hidden>
+                <div class="editor-track-node-heading">
+                  <span class="eyebrow">SELECTED RANGE</span>
+                  <strong id="editor-track-range-length">0 M</strong>
+                </div>
+                <p>Change only the highlighted road section or its walls.</p>
+                <fieldset class="editor-track-range-group">
+                  <legend>ROAD</legend>
+                  <div class="editor-transform-grid">
+                    <label for="editor-track-range-road-width">
+                      <span>WIDTH</span>
+                      <input
+                        id="editor-track-range-road-width"
+                        type="number"
+                        min="1"
+                        max="100"
+                        step="0.5"
+                        value="6"
+                      />
+                    </label>
+                    <label for="editor-track-range-road-bank">
+                      <span>BANK</span>
+                      <input
+                        id="editor-track-range-road-bank"
+                        type="number"
+                        min="-60"
+                        max="60"
+                        step="2.5"
+                        value="0"
+                      />
+                    </label>
+                    <label for="editor-track-range-road-material">
+                      <span>MATERIAL</span>
+                      <select id="editor-track-range-road-material">
+                        <option value="track.asphalt">ASPHALT</option>
+                        <option value="track.concrete">CONCRETE</option>
+                        <option value="track.dirt">DIRT</option>
+                        <option value="track.ice">ICE</option>
+                        <option value="track.neon">NEON</option>
+                        <option value="track.racing-stripes">RACING STRIPES</option>
+                        <option value="track.checker">CHECKER</option>
+                        <option value="track.arrows">DIRECTION ARROWS</option>
+                        <option value="track.rainbow">RAINBOW ROAD</option>
+                        <option value="track.sunset">SUNSET GRADIENT</option>
+                      </select>
+                    </label>
+                    <label for="editor-track-range-road-surface">
+                      <span>DRIVING FEEL</span>
+                      <select id="editor-track-range-road-surface">
+                        <option value="normal">NORMAL</option>
+                        <option value="slippery">SLIPPERY</option>
+                        <option value="sticky">STICKY</option>
+                        <option value="bouncy">BOUNCY</option>
+                        <option value="slow">SLOW</option>
+                        <option value="boost">BOOST</option>
+                        <option value="hazard">HAZARD</option>
+                      </select>
+                    </label>
+                    <label
+                      id="editor-track-range-road-strength-field"
+                      for="editor-track-range-road-strength"
+                    >
+                      <span>STRENGTH</span>
+                      <input
+                        id="editor-track-range-road-strength"
+                        type="number"
+                        min="0.25"
+                        max="2"
+                        step="0.25"
+                        value="1"
+                      />
+                    </label>
+                    <label
+                      id="editor-track-range-road-cooldown-field"
+                      for="editor-track-range-road-cooldown"
+                    >
+                      <span>COOLDOWN (S)</span>
+                      <input
+                        id="editor-track-range-road-cooldown"
+                        type="number"
+                        min="0.1"
+                        max="5"
+                        step="0.05"
+                        value="0.35"
+                      />
+                    </label>
+                  </div>
+                  <button
+                    id="editor-apply-track-road-range-button"
+                    class="button button--primary editor-track-range-apply"
+                    type="button"
+                  >
+                    APPLY TO ROAD
+                  </button>
+                  <p class="editor-track-range-note">
+                    Strength and cooldown are saved with this range and used by Test Mode.
+                  </p>
+                </fieldset>
+                <fieldset class="editor-track-range-group">
+                  <legend>WALLS</legend>
+                  <div class="editor-transform-grid">
+                    <label for="editor-track-range-side">
+                      <span>SIDE</span>
+                      <select id="editor-track-range-side">
+                        <option value="both">BOTH</option>
+                        <option value="left">LEFT</option>
+                        <option value="right">RIGHT</option>
+                      </select>
+                    </label>
+                    <label for="editor-track-range-style">
+                      <span>STYLE</span>
+                      <select id="editor-track-range-style">
+                        <option value="wall.clean">CLEAN CYAN</option>
+                        <option value="wall.safety-cyan">SAFETY CYAN</option>
+                        <option value="wall.sunset">SUNSET</option>
+                        <option value="wall.neon">NEON LIME</option>
+                        <option value="wall.guardrail">GUARD RAIL</option>
+                      </select>
+                    </label>
+                    <label for="editor-track-range-wall-height">
+                      <span>HEIGHT</span>
+                      <input
+                        id="editor-track-range-wall-height"
+                        type="number"
+                        min="0.1"
+                        max="20"
+                        step="0.1"
+                        value="1.2"
+                      />
+                    </label>
+                    <label for="editor-track-range-wall-thickness">
+                      <span>THICKNESS</span>
+                      <input
+                        id="editor-track-range-wall-thickness"
+                        type="number"
+                        min="0.05"
+                        max="5"
+                        step="0.05"
+                        value="0.2"
+                      />
+                    </label>
+                  </div>
+                  <div class="editor-track-node-actions">
+                    <button
+                      id="editor-apply-track-range-button"
+                      class="button button--primary"
+                      type="button"
+                    >
+                      APPLY TO WALLS
+                    </button>
+                  </div>
+                </fieldset>
+                <button
+                  id="editor-clear-track-range-button"
+                  class="button button--quiet editor-track-range-clear"
+                  type="button"
+                >
+                  CLEAR RANGE
+                </button>
+              </section>
+              <div id="editor-track-node-panel" class="editor-track-node-panel" hidden>
+                <div class="editor-track-node-heading">
+                  <span id="editor-track-node-kind" class="eyebrow">CONTROL POINT</span>
+                  <strong id="editor-track-node-index">1 OF 3</strong>
+                </div>
+                <div class="editor-transform-grid">
+                  <label for="editor-track-node-x">
+                    <span>X</span>
+                    <input id="editor-track-node-x" type="number" step="0.25" />
+                  </label>
+                  <label for="editor-track-node-y">
+                    <span>HEIGHT</span>
+                    <input id="editor-track-node-y" type="number" step="0.25" />
+                  </label>
+                  <label for="editor-track-node-z">
+                    <span>Z</span>
+                    <input id="editor-track-node-z" type="number" step="0.25" />
+                  </label>
+                  <label for="editor-track-node-width">
+                    <span>WIDTH</span>
+                    <input id="editor-track-node-width" type="number" step="0.5" min="1" />
+                  </label>
+                  <label class="editor-transform-grid__wide" for="editor-track-node-bank">
+                    <span>BANK ANGLE</span>
+                    <input
+                      id="editor-track-node-bank"
+                      type="number"
+                      step="2.5"
+                      min="-60"
+                      max="60"
+                    />
+                  </label>
+                </div>
+                <p id="editor-track-node-help">
+                  Drag the green point to reshape locally. Each colored curve handle changes only
+                  its side; hold Shift while dragging a handle to shape hills and jumps.
+                </p>
+                <button
+                  id="editor-reset-track-tangent-button"
+                  class="button button--quiet editor-track-node-reset"
+                  type="button"
+                >
+                  RESET CURVE HANDLES
+                </button>
+                <button
+                  id="editor-split-track-button"
+                  class="button button--quiet editor-track-node-reset"
+                  type="button"
+                  hidden
+                >
+                  SPLIT TRACK HERE
+                </button>
+                <div class="editor-track-node-actions">
+                  <button
+                    id="editor-insert-track-node-button"
+                    class="button button--quiet"
+                    type="button"
+                  >
+                    ADD MIDPOINT
+                  </button>
+                  <button
+                    id="editor-delete-track-node-button"
+                    class="button button--danger"
+                    type="button"
+                  >
+                    REMOVE POINT
+                  </button>
+                </div>
+              </div>
+              <p class="editor-phase-note">
+                Drag an orange point to reshape it, or choose TRACK and drag an end to continue.
+              </p>
+              <div class="editor-selection-actions">
+                <button id="editor-smooth-track-button" class="button button--quiet" type="button">
+                  SMOOTH CURVES
+                </button>
+                <button id="editor-frame-track-button" class="button button--quiet" type="button">
+                  FRAME
+                </button>
+                <button id="editor-delete-track-button" class="button button--danger" type="button">
+                  DELETE TRACK
+                </button>
+              </div>
+            </section>
+            <section id="editor-multi-selection-panel" class="editor-selection-panel" hidden>
+              <span class="eyebrow">SELECTED</span>
+              <h3><span id="editor-selected-count">2</span> OBJECTS</h3>
+              <p class="editor-phase-note">Drag to move, turn, or resize the whole selection.</p>
+              <div class="editor-selection-actions">
+                <button id="editor-group-button" class="button button--quiet" type="button">
+                  GROUP
+                </button>
+                <button id="editor-ungroup-button" class="button button--quiet" type="button">
+                  UNGROUP
+                </button>
+                <button id="editor-frame-multi-button" class="button button--quiet" type="button">
+                  FRAME ALL
+                </button>
+                <button
+                  id="editor-duplicate-multi-button"
+                  class="button button--quiet"
+                  type="button"
+                >
+                  DUPLICATE
+                </button>
+                <button id="editor-delete-multi-button" class="button button--danger" type="button">
+                  DELETE ALL
+                </button>
+              </div>
+            </section>
+            <section id="editor-prefab-save-panel" class="editor-selection-panel" hidden>
+              <span class="eyebrow">REUSE THIS BUILD</span>
+              <h3>SAVE AS PREFAB</h3>
+              <label class="editor-transform-grid__wide" for="editor-prefab-name">
+                <span>PREFAB NAME</span>
+                <input id="editor-prefab-name" maxlength="80" placeholder="My Cool Build" />
+              </label>
+              <button id="editor-save-prefab-button" class="button button--quiet" type="button">
+                SAVE SELECTION
+              </button>
+              <p class="editor-phase-note">
+                Prefabs place editable copies. Removing a prefab never removes placed objects.
+              </p>
+            </section>
+            <section id="editor-selection-panel" class="editor-selection-panel" hidden>
+              <span class="eyebrow">SELECTED</span>
+              <h3 id="editor-selected-name">OBJECT</h3>
+              <div class="editor-transform-grid">
+                <label for="editor-position-x">
+                  <span>X</span>
+                  <input id="editor-position-x" type="number" step="0.25" />
+                </label>
+                <label for="editor-position-y">
+                  <span>Y</span>
+                  <input id="editor-position-y" type="number" step="0.25" />
+                </label>
+                <label for="editor-position-z">
+                  <span>Z</span>
+                  <input id="editor-position-z" type="number" step="0.25" />
+                </label>
+                <label for="editor-yaw">
+                  <span>ANGLE</span>
+                  <input id="editor-yaw" type="number" step="5" />
+                </label>
+                <label class="editor-transform-grid__wide" for="editor-primary-size">
+                  <span id="editor-primary-size-label">SIZE</span>
+                  <input id="editor-primary-size" type="number" step="0.5" min="0.5" />
+                </label>
+              </div>
+              <div class="editor-selection-actions">
+                <button
+                  id="editor-frame-selection-button"
+                  class="button button--quiet"
+                  type="button"
+                >
+                  FRAME
+                </button>
+                <button id="editor-duplicate-button" class="button button--quiet" type="button">
+                  DUPLICATE
+                </button>
+                <button id="editor-delete-button" class="button button--danger" type="button">
+                  DELETE
+                </button>
+              </div>
+            </section>
+            <section id="editor-physics-panel" class="editor-selection-panel" hidden>
+              <span class="eyebrow">DRIVING FEEL</span>
+              <h3>PHYSICS</h3>
+              <div class="editor-transform-grid">
+                <label for="editor-physics-mass">
+                  <span>WEIGHT</span>
+                  <input id="editor-physics-mass" type="number" min="0.1" max="100" step="0.5" />
+                </label>
+                <label for="editor-physics-friction">
+                  <span>GRIP</span>
+                  <input id="editor-physics-friction" type="number" min="0" max="2" step="0.05" />
+                </label>
+                <label class="editor-transform-grid__wide" for="editor-physics-restitution">
+                  <span>BOUNCE</span>
+                  <input
+                    id="editor-physics-restitution"
+                    type="number"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                  />
+                </label>
+              </div>
+              <p class="editor-phase-note">
+                Weight changes how hard it is to push. Grip and bounce use simple 0–1 style values.
+              </p>
+            </section>
+            <section id="editor-motion-panel" class="editor-selection-panel" hidden>
+              <span class="eyebrow">MOTION</span>
+              <h3 id="editor-motion-heading">MOVING PLATFORM</h3>
+              <div class="editor-transform-grid">
+                <label class="editor-transform-grid__wide" for="editor-motion-speed">
+                  <span id="editor-motion-speed-label">SPEED (M/S)</span>
+                  <input id="editor-motion-speed" type="number" step="0.25" />
+                </label>
+                <label id="editor-motion-dwell-field" for="editor-motion-dwell">
+                  <span>END PAUSE</span>
+                  <input id="editor-motion-dwell" type="number" min="0" max="30" step="0.25" />
+                </label>
+                <label id="editor-motion-offset-x-field" for="editor-motion-offset-x">
+                  <span>TRAVEL X</span>
+                  <input
+                    id="editor-motion-offset-x"
+                    type="number"
+                    min="-100"
+                    max="100"
+                    step="0.5"
+                  />
+                </label>
+                <label id="editor-motion-offset-y-field" for="editor-motion-offset-y">
+                  <span>TRAVEL Y</span>
+                  <input
+                    id="editor-motion-offset-y"
+                    type="number"
+                    min="-100"
+                    max="100"
+                    step="0.5"
+                  />
+                </label>
+                <label id="editor-motion-offset-z-field" for="editor-motion-offset-z">
+                  <span>TRAVEL Z</span>
+                  <input
+                    id="editor-motion-offset-z"
+                    type="number"
+                    min="-100"
+                    max="100"
+                    step="0.5"
+                  />
+                </label>
+              </div>
+              <p id="editor-motion-help" class="editor-phase-note">
+                Travel values set the other end. The platform moves there and back smoothly.
+              </p>
+            </section>
+            <section id="editor-boost-panel" class="editor-selection-panel" hidden>
+              <span class="eyebrow">TRAVEL + SPEED</span>
+              <h3 id="editor-boost-heading">BOOST PAD</h3>
+              <div class="editor-transform-grid">
+                <label for="editor-boost-speed">
+                  <span>FORWARD POWER</span>
+                  <input id="editor-boost-speed" type="number" min="0" max="40" step="0.5" />
+                </label>
+                <label for="editor-boost-lift">
+                  <span>UPWARD LIFT</span>
+                  <input id="editor-boost-lift" type="number" min="0" max="30" step="0.5" />
+                </label>
+                <label class="editor-transform-grid__wide" for="editor-boost-cooldown">
+                  <span>REUSE DELAY (S)</span>
+                  <input id="editor-boost-cooldown" type="number" min="0" max="10" step="0.05" />
+                </label>
+              </div>
+              <p id="editor-boost-help" class="editor-phase-note">
+                The arrow shows forward. Turn the pad to choose where the speed goes.
+              </p>
+            </section>
+            <section id="editor-surface-pad-panel" class="editor-selection-panel" hidden>
+              <span class="eyebrow">TRAVEL + SPEED</span>
+              <h3 id="editor-surface-pad-heading">BOUNCE PAD</h3>
+              <div class="editor-transform-grid">
+                <label class="editor-transform-grid__wide" for="editor-surface-pad-strength">
+                  <span id="editor-surface-pad-strength-label">BOUNCE POWER</span>
+                  <input id="editor-surface-pad-strength" type="number" step="0.5" />
+                </label>
+                <label class="editor-transform-grid__wide" for="editor-surface-pad-cooldown">
+                  <span>REUSE DELAY (S)</span>
+                  <input
+                    id="editor-surface-pad-cooldown"
+                    type="number"
+                    min="0"
+                    max="10"
+                    step="0.05"
+                  />
+                </label>
+              </div>
+              <p id="editor-surface-pad-help" class="editor-phase-note">
+                Cars and physics toys leave upward at least this fast.
+              </p>
+            </section>
+            <section id="editor-guidance-panel" class="editor-selection-panel" hidden>
+              <span class="eyebrow">DECORATION + GUIDANCE</span>
+              <h3 id="editor-guidance-heading">DIRECTION ARROW</h3>
+              <div class="editor-transform-grid">
+                <label for="editor-guidance-color">
+                  <span>COLOR</span>
+                  <input id="editor-guidance-color" type="color" value="#f7e44d" />
+                </label>
+                <label for="editor-guidance-glow">
+                  <span>GLOW</span>
+                  <input id="editor-guidance-glow" type="number" min="0" max="2" step="0.1" />
+                </label>
+                <label
+                  id="editor-guidance-solid-field"
+                  class="editor-transform-grid__wide editor-checkbox-row"
+                  for="editor-guidance-solid"
+                >
+                  <input id="editor-guidance-solid" type="checkbox" />
+                  <span>SOLID · BLOCKS CARS</span>
+                </label>
+              </div>
+              <p id="editor-guidance-help" class="editor-phase-note">
+                Turn this bright floor arrow to guide racers.
+              </p>
+            </section>
+            <section id="editor-decoration-panel" class="editor-selection-panel" hidden>
+              <span class="eyebrow">DECORATION + LIGHT</span>
+              <h3 id="editor-decoration-heading">POINT LIGHT</h3>
+              <div class="editor-transform-grid">
+                <label for="editor-decoration-color">
+                  <span>COLOR</span>
+                  <input id="editor-decoration-color" type="color" value="#ffd166" />
+                </label>
+                <label id="editor-decoration-glow-field" for="editor-decoration-glow">
+                  <span>GLOW</span>
+                  <input id="editor-decoration-glow" type="number" min="0" max="2" step="0.1" />
+                </label>
+                <label id="editor-decoration-intensity-field" for="editor-decoration-intensity">
+                  <span>BRIGHTNESS</span>
+                  <input
+                    id="editor-decoration-intensity"
+                    type="number"
+                    min="0"
+                    max="10"
+                    step="0.25"
+                  />
+                </label>
+                <label id="editor-decoration-range-field" for="editor-decoration-range">
+                  <span>RANGE</span>
+                  <input id="editor-decoration-range" type="number" min="2" max="40" step="0.5" />
+                </label>
+                <label
+                  class="editor-transform-grid__wide editor-checkbox-row"
+                  for="editor-decoration-enabled"
+                >
+                  <input id="editor-decoration-enabled" type="checkbox" />
+                  <span>STARTS ON</span>
+                </label>
+              </div>
+              <p id="editor-decoration-help" class="editor-phase-note">
+                Color an area without changing car physics.
+              </p>
+            </section>
+            <section id="editor-route-panel" class="editor-selection-panel" hidden>
+              <span class="eyebrow">RACE ROUTE</span>
+              <h3 id="editor-route-heading">CHECKPOINTS</h3>
+              <p id="editor-route-help" class="editor-phase-note">
+                Select checkpoints to build a route.
+              </p>
+              <div class="editor-selection-actions">
+                <button
+                  id="editor-group-checkpoints-button"
+                  class="button button--quiet"
+                  type="button"
+                >
+                  MAKE GROUP
+                </button>
+                <button id="editor-link-route-button" class="button button--quiet" type="button">
+                  LINK ROUTE
+                </button>
+                <button id="editor-link-shortcut-button" class="button button--quiet" type="button">
+                  LINK SHORTCUT
+                </button>
+                <button
+                  id="editor-toggle-checkpoint-required-button"
+                  class="button button--quiet"
+                  type="button"
+                >
+                  MAKE OPTIONAL
+                </button>
+              </div>
+            </section>
+            <section id="editor-recovery-link-panel" class="editor-selection-panel" hidden>
+              <span class="eyebrow">RECOVERY LINK</span>
+              <h3>SAFE LANDING</h3>
+              <p id="editor-recovery-link-help" class="editor-phase-note">
+                Select one Recovery Volume and one Safe Recovery Pose.
+              </p>
+              <div class="editor-selection-actions">
+                <button
+                  id="editor-assign-recovery-pose-button"
+                  class="button button--quiet"
+                  type="button"
+                >
+                  ASSIGN POSE
+                </button>
+                <button
+                  id="editor-clear-recovery-pose-button"
+                  class="button button--danger"
+                  type="button"
+                >
+                  CLEAR LINK
+                </button>
+              </div>
+            </section>
+            <section id="editor-portal-link-panel" class="editor-selection-panel" hidden>
+              <span class="eyebrow">PORTAL PAIR</span>
+              <h3>TWO-WAY DOOR</h3>
+              <p id="editor-portal-link-help" class="editor-phase-note">
+                Select this Portal, then Shift-click one more Portal.
+              </p>
+              <div class="editor-selection-actions">
+                <button id="editor-link-portals-button" class="button button--quiet" type="button">
+                  LINK PORTALS
+                </button>
+                <button
+                  id="editor-clear-portal-link-button"
+                  class="button button--danger"
+                  type="button"
+                >
+                  CLEAR LINK
+                </button>
+              </div>
+            </section>
+            <section id="editor-interaction-link-panel" class="editor-selection-panel" hidden>
+              <span class="eyebrow">NO-CODE LINK</span>
+              <h3>WHEN → DO</h3>
+              <p id="editor-interaction-link-help" class="editor-phase-note">
+                Select a source, then Shift-click a target.
+              </p>
+              <div class="editor-transform-grid">
+                <label for="editor-interaction-event">
+                  <span>WHEN</span>
+                  <select id="editor-interaction-event"></select>
+                </label>
+                <label for="editor-interaction-action">
+                  <span>DO</span>
+                  <select id="editor-interaction-action"></select>
+                </label>
+                <label class="editor-transform-grid__wide" for="editor-interaction-condition">
+                  <span>ONLY IF</span>
+                  <select id="editor-interaction-condition">
+                    <option value="">ALWAYS</option>
+                    <option value="race-running">RACE IS RUNNING</option>
+                    <option value="lap-1-or-later">LAP 1 OR LATER</option>
+                    <option value="lap-2-or-later">LAP 2 OR LATER</option>
+                    <option value="lap-3-or-later">LAP 3 OR LATER</option>
+                  </select>
+                </label>
+              </div>
+              <button
+                id="editor-add-interaction-link-button"
+                class="button button--primary"
+                type="button"
+              >
+                ADD LINK
+              </button>
+              <div id="editor-interaction-link-list" class="editor-interaction-link-list"></div>
+            </section>
+            <section class="editor-selection-panel editor-environment-panel">
+              <span class="eyebrow">WORLD SETTINGS</span>
+              <h3>LOOK &amp; FEEL</h3>
+              <div class="editor-transform-grid">
+                <label for="editor-environment-ground">
+                  <span>BASE</span>
+                  <select id="editor-environment-ground">
+                    <option value="ground">GROUND</option>
+                    <option value="void">VOID</option>
+                  </select>
+                </label>
+                <label for="editor-environment-sky">
+                  <span>SKY</span>
+                  <select id="editor-environment-sky">
+                    <option value="day">BRIGHT DAY</option>
+                    <option value="sunset">SUNSET</option>
+                    <option value="night">NIGHT</option>
+                    <option value="custom">CUSTOM</option>
+                  </select>
+                </label>
+                <label for="editor-environment-background">
+                  <span>SKY COLOR</span>
+                  <input id="editor-environment-background" type="color" />
+                </label>
+                <label for="editor-environment-gravity-preset">
+                  <span>GRAVITY</span>
+                  <select id="editor-environment-gravity-preset">
+                    <option value="earth">NORMAL</option>
+                    <option value="moon">MOON</option>
+                    <option value="floaty">FLOATY</option>
+                    <option value="strong">STRONG</option>
+                    <option value="zero">ZERO</option>
+                    <option value="custom">CUSTOM</option>
+                  </select>
+                </label>
+                <label for="editor-environment-gravity">
+                  <span>GRAVITY POWER</span>
+                  <input
+                    id="editor-environment-gravity"
+                    type="number"
+                    min="0"
+                    max="40"
+                    step="0.1"
+                  />
+                </label>
+                <label for="editor-environment-music">
+                  <span>MUSIC</span>
+                  <select id="editor-environment-music">
+                    <option value="">NONE</option>
+                    <option value="music.arcade">ARCADE SPARK</option>
+                    <option value="music.cruise">EASY CRUISE</option>
+                    <option value="music.starlight">STARLIGHT RUN</option>
+                  </select>
+                </label>
+                <label class="editor-transform-grid__wide" for="editor-environment-music-volume">
+                  <span>MUSIC PREVIEW VOLUME</span>
+                  <input
+                    id="editor-environment-music-volume"
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                  />
+                </label>
+              </div>
+              <details class="editor-environment-advanced">
+                <summary>ADVANCED WORLD CONTROLS</summary>
+                <div class="editor-transform-grid">
+                  <label for="editor-environment-key-color"
+                    ><span>SUN COLOR</span><input id="editor-environment-key-color" type="color"
+                  /></label>
+                  <label for="editor-environment-key-intensity"
+                    ><span>SUN POWER</span
+                    ><input
+                      id="editor-environment-key-intensity"
+                      type="number"
+                      min="0"
+                      max="8"
+                      step="0.1"
+                  /></label>
+                  <label for="editor-environment-key-x"
+                    ><span>SUN X</span
+                    ><input
+                      id="editor-environment-key-x"
+                      type="number"
+                      min="-100"
+                      max="100"
+                      step="1"
+                  /></label>
+                  <label for="editor-environment-key-y"
+                    ><span>SUN Y</span
+                    ><input
+                      id="editor-environment-key-y"
+                      type="number"
+                      min="-100"
+                      max="100"
+                      step="1"
+                  /></label>
+                  <label for="editor-environment-key-z"
+                    ><span>SUN Z</span
+                    ><input
+                      id="editor-environment-key-z"
+                      type="number"
+                      min="-100"
+                      max="100"
+                      step="1"
+                  /></label>
+                  <label for="editor-environment-ambient-color"
+                    ><span>FILL COLOR</span
+                    ><input id="editor-environment-ambient-color" type="color"
+                  /></label>
+                  <label for="editor-environment-ambient-intensity"
+                    ><span>FILL POWER</span
+                    ><input
+                      id="editor-environment-ambient-intensity"
+                      type="number"
+                      min="0"
+                      max="5"
+                      step="0.1"
+                  /></label>
+                  <label for="editor-environment-fog"
+                    ><span>FOG</span><input id="editor-environment-fog" type="checkbox"
+                  /></label>
+                  <label for="editor-environment-fog-color"
+                    ><span>FOG COLOR</span><input id="editor-environment-fog-color" type="color"
+                  /></label>
+                  <label for="editor-environment-fog-near"
+                    ><span>FOG START</span
+                    ><input
+                      id="editor-environment-fog-near"
+                      type="number"
+                      min="0"
+                      max="100000"
+                      step="1"
+                  /></label>
+                  <label for="editor-environment-fog-far"
+                    ><span>FOG END</span
+                    ><input
+                      id="editor-environment-fog-far"
+                      type="number"
+                      min="1"
+                      max="100000"
+                      step="1"
+                  /></label>
+                  <label class="editor-transform-grid__wide" for="editor-environment-oob"
+                    ><span>RECOVER BELOW</span
+                    ><input
+                      id="editor-environment-oob"
+                      type="number"
+                      min="-10000"
+                      max="1000"
+                      step="1"
+                  /></label>
+                </div>
+              </details>
+              <p class="editor-phase-note">
+                Colors and lights preview now. Gravity and recovery height take effect in Test Mode.
+              </p>
+            </section>
+            <section class="editor-selection-panel editor-race-setup-panel">
+              <span class="eyebrow">RACE SETUP</span>
+              <h3>HOW TO PLAY</h3>
+              <div class="editor-transform-grid">
+                <label class="editor-transform-grid__wide" for="editor-race-mode">
+                  <span>MODE</span>
+                  <select id="editor-race-mode">
+                    <option value="free-roam">FREE ROAM</option>
+                    <option value="circuit">CIRCUIT</option>
+                    <option value="point-to-point">POINT TO POINT</option>
+                    <option value="time-trial">TIME TRIAL</option>
+                    <option value="multi-route">MULTI ROUTE</option>
+                  </select>
+                </label>
+                <label for="editor-race-laps">
+                  <span>LAPS</span>
+                  <input id="editor-race-laps" type="number" min="1" max="99" step="1" />
+                </label>
+                <label for="editor-finish-rule">
+                  <span>FINISH</span>
+                  <select id="editor-finish-rule">
+                    <option value="any">ANY VALID GATE</option>
+                    <option value="required-group">AFTER REQUIRED GROUPS</option>
+                  </select>
+                </label>
+                <label for="editor-race-recovery-delay">
+                  <span>RESET DELAY</span>
+                  <input
+                    id="editor-race-recovery-delay"
+                    type="number"
+                    min="0"
+                    max="30"
+                    step="0.25"
+                  />
+                </label>
+                <label for="editor-race-recovery-penalty">
+                  <span>TIME PENALTY</span>
+                  <input
+                    id="editor-race-recovery-penalty"
+                    type="number"
+                    min="0"
+                    max="300"
+                    step="1"
+                  />
+                </label>
+              </div>
+              <p id="editor-race-setup-help" class="editor-phase-note">
+                Free roam ignores race progress. Choose a scored mode to test checkpoints and laps.
+              </p>
+            </section>
+            <section class="editor-map-summary">
+              <span class="eyebrow">MAP</span>
+              <h3>FOUNDATION</h3>
+              <dl class="editor-facts">
+                <div>
+                  <dt>FORMAT</dt>
+                  <dd id="editor-format-version">V1</dd>
+                </div>
+                <div>
+                  <dt>OBJECTS</dt>
+                  <dd id="editor-object-count">2</dd>
+                </div>
+                <div>
+                  <dt>REVISION</dt>
+                  <dd id="editor-map-revision">1</dd>
+                </div>
+                <div>
+                  <dt>HEALTH</dt>
+                  <dd id="editor-map-health">GREEN</dd>
+                </div>
+              </dl>
+              <div id="editor-diagnostics" class="editor-diagnostics" aria-live="polite">
+                Ready for free-drive compilation.
+              </div>
+              <label class="editor-map-tags" for="editor-map-tags">
+                <span>TAGS · COMMA SEPARATED</span>
+                <input id="editor-map-tags" maxlength="240" placeholder="race, jumps, rainbow" />
+              </label>
+            </section>
+          </aside>
+
+          <footer class="editor-statusbar">
+            <span
+              >HOVER HIGHLIGHTS · CLICK SELECT · SHIFT+CLICK ADD · ALT+WHEEL ZOOM · CTRL+C/V</span
+            >
+            <span id="editor-storage-mode">LOCAL MAP STORAGE</span>
+          </footer>
         </section>
 
         <section id="screen-pause" class="screen screen--centered screen--dimmed" hidden>

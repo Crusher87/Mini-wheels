@@ -1,7 +1,7 @@
 # Dependencies, assets and licenses
 
 Audit date: 2026-07-28 (America/Vancouver)  
-Package: `tiny-traction-alpha@0.1.0`  
+Package: `mini-wheels-alpha@0.1.0`
 Inventory status: `PARTIAL — ENGINEERING INVENTORY, NOT LEGAL SIGN-OFF`
 
 This document records package metadata and repository provenance. It is not
@@ -98,18 +98,18 @@ license text. Formal review of the final notice set remains open.
 
 ## Project-authored asset inventory
 
-| Asset group                                 | Implementation source                                                  | Provenance                             | Current release state                             |
-| ------------------------------------------- | ---------------------------------------------------------------------- | -------------------------------------- | ------------------------------------------------- |
-| Car, arena, props and interactable geometry | TypeScript-created Three.js primitives and project-authored wedge data | Original reconstruction work           | Implemented; human clean-room review pending      |
-| Materials and palette                       | Project-authored constants plus Three.js materials                     | Original configuration / Three.js API  | Implemented                                       |
-| Vignette shader                             | `src/render/VignetteShader.ts`                                         | Project-authored shader                | Implemented                                       |
-| Particles                                   | `src/render/ParticlePool.ts`, one procedural instanced pool            | Original procedural VFX                | Implemented                                       |
-| Audio                                       | `src/audio/AudioService.ts`, Web Audio oscillators/gain/panning        | Original procedural audio; no samples  | Implemented; listening review pending             |
-| UI text and styling                         | `index.html`, `src/styles.css`, marker CSS                             | Original browser UI                    | Implemented                                       |
-| Title/identity                              | “Tiny Traction” text treatment                                         | Deliberately distinct project identity | Implemented; trademark clearance not performed    |
-| Fonts                                       | CSS system stack; no font file bundled                                 | User-agent/OS fonts                    | No redistributable font asset                     |
-| Reference screenshots                       | Read-only reconstruction evidence under the supplied package           | User-supplied reference material       | Excluded from `dist/`                             |
-| Original executable/code/assets             | Not used                                                               | Prohibited clean-room input            | Absent from project source and `dist/` inspection |
+| Asset group                                 | Implementation source                                                  | Provenance                            | Current release state                             |
+| ------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------- | ------------------------------------------------- |
+| Car, arena, props and interactable geometry | TypeScript-created Three.js primitives and project-authored wedge data | Original reconstruction work          | Implemented; human clean-room review pending      |
+| Materials and palette                       | Project-authored constants plus Three.js materials                     | Original configuration / Three.js API | Implemented                                       |
+| Vignette shader                             | `src/render/VignetteShader.ts`                                         | Project-authored shader               | Implemented                                       |
+| Particles                                   | `src/render/ParticlePool.ts`, one procedural instanced pool            | Original procedural VFX               | Implemented                                       |
+| Audio                                       | `src/audio/AudioService.ts`, Web Audio oscillators/gain/panning        | Original procedural audio; no samples | Implemented; listening review pending             |
+| UI text and styling                         | `index.html`, `src/styles.css`, marker CSS                             | Original browser UI                   | Implemented                                       |
+| Title/identity                              | “Mini Wheels” text treatment                                           | User-requested project identity       | Implemented; trademark clearance not performed    |
+| Fonts                                       | CSS system stack; no font file bundled                                 | User-agent/OS fonts                   | No redistributable font asset                     |
+| Reference screenshots                       | Read-only reconstruction evidence under the supplied package           | User-supplied reference material      | Excluded from `dist/`                             |
+| Original executable/code/assets             | Not used                                                               | Prohibited clean-room input           | Absent from project source and `dist/` inspection |
 
 The supplied six screenshots and GDD remain reference evidence. They are not
 declared redistributable game assets and are not copied into the application.

@@ -36,6 +36,10 @@ export interface SandboxArenaDebugSnapshot {
   readonly cubeVisualBatchCount: number;
   readonly cubes: readonly SandboxPropDebugTransform[];
   readonly balls: readonly SandboxPropDebugTransform[];
+  readonly guidanceVisualCount?: number;
+  readonly guidanceColliderCount?: number;
+  readonly decorationVisualCount?: number;
+  readonly pointLightCount?: number;
 }
 
 export interface SandboxPropDebugTransform {
@@ -322,6 +326,26 @@ export class SandboxArena {
     record.previousRotation.set(rotation.x, rotation.y, rotation.z, rotation.w).normalize();
     record.currentRotation.copy(record.previousRotation);
     return true;
+  }
+
+  public isWallCollider(): boolean {
+    return false;
+  }
+
+  public wallInwardNormal(): null {
+    return null;
+  }
+
+  public surfaceForCollider(): null {
+    return null;
+  }
+
+  public recoveryForCollider(): null {
+    return null;
+  }
+
+  public raceTriggerForCollider(): null {
+    return null;
   }
 
   private recoverFallenDynamicBodyHandles(): readonly RigidBodyHandle[] {

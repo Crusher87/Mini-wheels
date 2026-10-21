@@ -74,7 +74,7 @@ test("UI-001/002: keyboard navigation escapes every panel and unfinished modes s
 
   await page.getByRole("button", { name: "PLAY", exact: true }).click();
   await expect(page.getByRole("button", { name: /sandbox/i })).toBeEnabled();
-  for (const mode of ["INFECTED", "ICEAGE", "ICEDIAMONDS", "STONEHEDGE"]) {
+  for (const mode of ["INFECTED", "ICE AGE", "ICE DIAMONDS", "STONE HEDGE"]) {
     await expect(page.getByRole("button", { name: new RegExp(mode, "i") })).toBeDisabled();
   }
   await page.keyboard.press("Escape");
@@ -89,7 +89,102 @@ test("UI-001/002: keyboard navigation escapes every panel and unfinished modes s
   await expect(page.locator("#screen-pause")).toBeHidden();
 });
 
-test("A11Y/Profile B: every v2 option applies semantic presentation hooks and resets", async ({
+test("UI-007/A11Y: Mini Wheels branding and 150% layouts stay inside their panels", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1536, height: 864 });
+  await activate(page);
+  await page.getByRole("button", { name: /options/i }).click();
+  await page.locator("#ui-scale").fill("1.5");
+  await page.reload();
+
+  await expect(page).toHaveTitle("Mini Wheels — Physics Sandbox");
+  await expect(page.locator("#screen-activation h1")).toHaveText(/MINI\s*WHEELS/);
+  expect(
+    await page.locator("#screen-activation").evaluate((screen) => {
+      const card = screen.querySelector(".activation-card");
+      const heading = screen.querySelector("h1");
+      if (!(card instanceof HTMLElement) || !(heading instanceof HTMLElement)) {
+        return false;
+      }
+      const parent = card.getBoundingClientRect();
+      const child = heading.getBoundingClientRect();
+      return child.left >= parent.left - 1 && child.right <= parent.right + 1;
+    }),
+  ).toBe(true);
+
+  await page.getByRole("button", { name: /start engine/i }).click();
+  await page.getByRole("button", { name: "PLAY", exact: true }).click();
+  expect(
+    await page.locator("#screen-modes").evaluate((screen) => {
+      const titles = [...screen.querySelectorAll(".mode-card strong")];
+      return (
+        screen.scrollWidth <= screen.clientWidth + 1 &&
+        titles.every((title) => {
+          const card = title.closest(".mode-card");
+          if (!(card instanceof HTMLElement)) {
+            return false;
+          }
+          const parent = card.getBoundingClientRect();
+          const child = title.getBoundingClientRect();
+          return child.left >= parent.left - 1 && child.right <= parent.right + 1;
+        })
+      );
+    }),
+  ).toBe(true);
+
+  await page.getByRole("button", { name: "Back" }).click();
+  await page.getByRole("button", { name: /players/i }).click();
+  expect(
+    await page.locator("#screen-players").evaluate((screen) => {
+      const screenRect = screen.getBoundingClientRect();
+      const cards = [...screen.querySelectorAll(".setting-card")];
+      return (
+        screen.scrollWidth <= screen.clientWidth + 1 &&
+        cards.every((card) => {
+          const rect = card.getBoundingClientRect();
+          return rect.left >= screenRect.left - 1 && rect.right <= screenRect.right + 1;
+        })
+      );
+    }),
+  ).toBe(true);
+
+  await page.setViewportSize({ width: 843, height: 813 });
+  await page.getByRole("button", { name: "Back" }).click();
+  await page.getByRole("button", { name: "PLAY", exact: true }).click();
+  await page.getByRole("button", { name: /sandbox/i }).click();
+  await expect(page.locator("#screen-loading")).toBeHidden();
+  await page.keyboard.press("p");
+  await expect(page.getByRole("heading", { name: "PAUSED" })).toBeVisible();
+  expect(
+    await page.locator("#screen-pause").evaluate((screen) => {
+      const card = screen.querySelector(".pause-card");
+      const markers = document.querySelector(".player-markers");
+      const ui = document.querySelector(".ui-layer");
+      if (
+        !(card instanceof HTMLElement) ||
+        !(markers instanceof HTMLElement) ||
+        !(ui instanceof HTMLElement)
+      ) {
+        return false;
+      }
+      const cardRect = card.getBoundingClientRect();
+      const controls = [...card.querySelectorAll<HTMLElement>("h2, button")].map((element) =>
+        element.getBoundingClientRect(),
+      );
+      return (
+        card.scrollWidth <= card.clientWidth + 1 &&
+        controls.every(
+          (rect) => rect.left >= cardRect.left - 1 && rect.right <= cardRect.right + 1,
+        ) &&
+        Number.parseInt(getComputedStyle(markers).zIndex, 10) <
+          Number.parseInt(getComputedStyle(ui).zIndex, 10)
+      );
+    }),
+  ).toBe(true);
+});
+
+test("A11Y/Profile B: every v4 option applies semantic presentation hooks and resets", async ({
   page,
 }) => {
   await activate(page);
@@ -131,11 +226,11 @@ test("A11Y/Profile B: every v2 option applies semantic presentation hooks and re
   );
 
   const persisted = await page.evaluate(() => {
-    const raw = localStorage.getItem("tiny-traction.settings");
+    const raw = localStorage.getItem("mini-wheels.settings");
     return raw === null ? null : (JSON.parse(raw) as Record<string, unknown>);
   });
   expect(persisted).toMatchObject({
-    schemaVersion: 2,
+    schemaVersion: 4,
     fullscreenPreference: true,
     uiScale: 1.4,
     markerSize: "large",
@@ -174,20 +269,17 @@ test("UI-001: a standard controller activates, navigates, confirms, and cancels"
   await page.waitForTimeout(50);
 
   await setMenuPadButton(page, 13, true);
-  await page.waitForTimeout(150);
+  await expect(page.getByRole("button", { name: /players/i })).toBeFocused();
   await setMenuPadButton(page, 13, false);
   await page.waitForTimeout(50);
-  await expect(page.getByRole("button", { name: /players/i })).toBeFocused();
 
   await setMenuPadButton(page, 0, true);
-  await page.waitForTimeout(50);
+  await expect(page.getByRole("heading", { name: "PLAYERS" })).toBeVisible();
   await setMenuPadButton(page, 0, false);
   await page.waitForTimeout(50);
-  await expect(page.getByRole("heading", { name: "PLAYERS" })).toBeVisible();
 
   await setMenuPadButton(page, 1, true);
-  await page.waitForTimeout(50);
+  await expect(page.getByRole("navigation", { name: "Main menu" })).toBeVisible();
   await setMenuPadButton(page, 1, false);
   await page.waitForTimeout(50);
-  await expect(page.getByRole("navigation", { name: "Main menu" })).toBeVisible();
 });

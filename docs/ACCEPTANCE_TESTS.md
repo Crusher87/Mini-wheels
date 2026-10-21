@@ -1,7 +1,7 @@
 # Acceptance tests
 
 Canonical source: GDD Section 21  
-Status date: 2026-07-28 (America/Vancouver)  
+Status date: 2026-07-30 (America/Vancouver)
 Profile: A unless noted
 
 ## Evidence rules
@@ -14,12 +14,13 @@ Profile: A unless noted
 | `FAIL`    | The complete condition was executed and failed                                                          |
 | `BLOCKED` | A named external blocker prevents execution                                                             |
 
-The release candidate passes format, lint, strict type checking, 19 unit files
-with 112 tests, and the complete three-engine functional matrix. The final
-Playwright matrix contains 34 defined cases per project: 27 functional cases
-pass on each of Chromium, Firefox, and WebKit; `PROD-001` and six native visual
-cases are intentionally skipped there and pass in their dedicated commands.
-The combined result is 81 passed / 21 intentional skips.
+The current revision passes format, lint, strict type checking, 19 unit files
+with 113 tests, and all 29 Chromium functional cases. Playwright defines 36
+cases per project: 29 functional cases, `PROD-001`, and six native visual
+cases. The latest full matrix produced 86 functional passes, one WebKit
+synthetic-button timing miss, and 21 intentional dedicated-suite skips. After
+the test held the button through the expected transition, that case passed on
+Chromium, Firefox, and WebKit.
 
 ## Final browser-results block
 
@@ -28,8 +29,8 @@ The combined result is 81 passed / 21 intentional skips.
 | Revision                              | Assigned by the final release commit / Sites version                      |
 | Command                               | `npm run test:browser:matrix`                                             |
 | Browser configuration                 | Playwright 1.62.0; Chromium, Firefox 153, and WebKit 26.5 device profiles |
-| Test count                            | 34 defined per project across 11 spec files                               |
-| Final result after latest integration | `PASS` — 81 passed / 21 intentional dedicated-suite skips                 |
+| Test count                            | 36 defined per project across 11 spec files                               |
+| Final result after latest integration | Full run: 86 pass / 1 timing miss / 21 skips; corrected case: 3/3 pass    |
 | HTML report                           | `playwright-report/` (local generated artifact; not committed)            |
 | Native visual result                  | `PASS` — 6/6 scenarios, seven retained PNG files                          |
 | Production preview                    | `PASS` — 1/1 `PROD-001`                                                   |
@@ -64,6 +65,7 @@ The combined result is 81 passed / 21 intentional skips.
 | VEH-010 | Refresh-rate independence | `NOT RUN` | Fixed-loop unit coverage is not a 60/120/144 Hz vehicle trajectory comparison               |
 | VEH-011 | Render interpolation      | `NOT RUN` | Chassis/wheel interpolation exists; high-refresh visual evidence is absent                  |
 | VEH-012 | Calibration report        | `NOT RUN` | Recorder/CSV unit tests pass, but no handling result set has been recorded                  |
+| VEH-013 | Brake and spark drift     | `PASS`    | Chromium verifies service braking, sustained grounded drift, yaw, momentum and particles    |
 
 ## 21.3 Multiplayer and input
 
@@ -77,7 +79,7 @@ The combined result is 81 passed / 21 intentional skips.
 | MP-006 | Conflict warning      | `PASS`    | All engines verify key overlap, reserved pause, and exclusive controller ownership                            |
 | MP-007 | Color independence    | `PARTIAL` | A retained grayscale P1–P10 symbol/label capture passes technical review; independent identification remains  |
 | MP-008 | Activation visibility | `PASS`    | Gamepad polling/assignment begins only after trusted activation; missing API falls back to keyboard           |
-| MP-009 | Blur safety           | `PASS`    | All engines verify live 2,000 N input, blur pause/clear, and zero force after resume                          |
+| MP-009 | Blur safety           | `PASS`    | All engines verify live 4,000 N input, blur pause/clear, and zero force after resume                          |
 
 ## 21.4 Camera
 
@@ -128,7 +130,7 @@ The combined result is 81 passed / 21 intentional skips.
 | UI-005   | Anti-aliasing          | `PARTIAL` | Unit mapping covers Off/FXAA/SMAA/High and browser spec inspects passes; visual efficacy not reviewed         |
 | UI-006   | AO/vignette            | `PARTIAL` | Persistence and pass enablement are automated; visible-effect human check is absent                           |
 | UI-007   | Browser exit semantics | `PASS`    | Static UI audit: only Return to Title / Exit Fullscreen are offered                                           |
-| A11Y-001 | Rebinding              | `PASS`    | All engines verify four-direction capture, conflict warnings, reserved pause, persistence, and reset          |
+| A11Y-001 | Rebinding              | `PASS`    | Direction coverage passes all engines; Chromium also verifies Brake/Drift capture and persistence             |
 | A11Y-002 | Focus                  | `PARTIAL` | Semantic controls and 4 px white + dark keyline focus style exist; measured contrast review is absent         |
 | A11Y-003 | Marker contrast        | `NOT RUN` | P1–P10 text/symbol/keyline implementation exists; background/contrast matrix not reviewed                     |
 

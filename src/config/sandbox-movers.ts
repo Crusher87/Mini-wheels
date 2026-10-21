@@ -48,9 +48,36 @@ export const SANDBOX_MOVER_SOURCE_REFERENCE = Object.freeze({
   ]),
 });
 
+export interface RotatingBarSource {
+  readonly id: string;
+  readonly position: { readonly x: number; readonly y: number; readonly z: number };
+  readonly scale: { readonly x: number; readonly y: number; readonly z: number };
+  readonly initialYawDegrees: number;
+  readonly sourceDegreesPerRenderedIteration: number;
+  readonly legacyDegreesPerSecond: number;
+  readonly recommendedDegreesPerSecond: number;
+  readonly color?: string | number;
+}
+
+export interface MovingPlatformSource {
+  readonly id: string;
+  readonly size: { readonly x: number; readonly y: number; readonly z: number };
+  readonly endpointA: { readonly x: number; readonly y: number; readonly z: number };
+  readonly endpointB: { readonly x: number; readonly y: number; readonly z: number };
+  readonly speedUnitsPerSecond: number;
+  readonly endpointHoldSeconds: number;
+  readonly authoredOneWayTravelSeconds: number;
+  readonly initiallyStopped?: boolean;
+  readonly rotation?: {
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+    readonly w: number;
+  };
+  readonly color?: string | number;
+}
+
 export type SandboxMoverSourceReference = typeof SANDBOX_MOVER_SOURCE_REFERENCE;
-export type RotatingBarSource = SandboxMoverSourceReference["rotatingBars"][number];
-export type MovingPlatformSource = SandboxMoverSourceReference["movingPlatforms"][number];
-export type RotatingBarId = RotatingBarSource["id"];
-export type MovingPlatformId = MovingPlatformSource["id"];
+export type RotatingBarId = string;
+export type MovingPlatformId = string;
 export type RotatingBarSpeedProfile = "legacy" | "recommended";

@@ -22,8 +22,14 @@ import {
 } from "./schema";
 import { migrateSettingsDocument } from "./migrations";
 
-export const SETTINGS_STORAGE_KEY = "tiny-traction.settings";
+export const SETTINGS_STORAGE_KEY = "mini-wheels.settings";
+export const PREVIOUS_SETTINGS_STORAGE_KEY = "tiny-traction.settings";
 export const LEGACY_SETTINGS_STORAGE_KEY = "tiny-traction.settings.v1";
+const SETTINGS_STORAGE_KEYS = [
+  SETTINGS_STORAGE_KEY,
+  PREVIOUS_SETTINGS_STORAGE_KEY,
+  LEGACY_SETTINGS_STORAGE_KEY,
+] as const;
 const RENDER_SCALES = new Set([0.5, 0.75, 1, 1.25]);
 const AA_QUALITIES = new Set<AaQuality>(["off", "fxaa", "smaa", "high"]);
 const SHADOW_QUALITIES = new Set<ShadowQuality>(["low", "medium", "high"]);
@@ -126,6 +132,7 @@ function validatePlayerInputs(value: unknown): readonly PlayerInputSettings[] {
             down: keyboardCode(keyboardCandidate["down"], fallback.keyboard.down),
             left: keyboardCode(keyboardCandidate["left"], fallback.keyboard.left),
             right: keyboardCode(keyboardCandidate["right"], fallback.keyboard.right),
+            brake: keyboardCode(keyboardCandidate["brake"], fallback.keyboard.brake),
           })
         : fallback.keyboard;
       const inputType = INPUT_TYPES.has(candidate["inputType"] as PlayerInputType)
@@ -242,10 +249,14 @@ export class SettingsService {
     let parsed: unknown;
     let loadedLegacyKey = false;
     try {
-      let raw = this.storage?.getItem(SETTINGS_STORAGE_KEY);
-      if (raw === null || raw === undefined) {
-        raw = this.storage?.getItem(LEGACY_SETTINGS_STORAGE_KEY);
-        loadedLegacyKey = raw !== null && raw !== undefined;
+      let raw: string | null | undefined;
+      for (const key of SETTINGS_STORAGE_KEYS) {
+        const candidate = this.storage?.getItem(key);
+        if (candidate !== null && candidate !== undefined) {
+          raw = candidate;
+          loadedLegacyKey = key !== SETTINGS_STORAGE_KEY;
+          break;
+        }
       }
       if (raw === null || raw === undefined) {
         this.settings = this.defaults;

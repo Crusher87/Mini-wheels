@@ -1,6 +1,6 @@
 import { DEFAULT_KEYBOARD_BINDINGS, type KeyboardBinding } from "../input/bindings";
 
-export const SETTINGS_SCHEMA_VERSION = 2 as const;
+export const SETTINGS_SCHEMA_VERSION = 4 as const;
 
 export type AaQuality = "off" | "fxaa" | "smaa" | "high";
 export type ShadowQuality = "low" | "medium" | "high";

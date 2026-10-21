@@ -20,6 +20,9 @@ import {
 } from "./moverMath";
 
 export interface KinematicMoverSystemOptions {
+  readonly enabled?: boolean;
+  readonly rotatingBars?: readonly RotatingBarSource[];
+  readonly movingPlatforms?: readonly MovingPlatformSource[];
   readonly barSpeedProfile?: RotatingBarSpeedProfile;
   readonly barColor?: ColorRepresentation;
   readonly platformColor?: ColorRepresentation;
@@ -80,6 +83,8 @@ interface MovingPlatformRuntime {
   readonly binding: PhysicsRenderBinding;
   readonly nextPosition: MutableVector3;
   phase: PlatformMotionPhase;
+  controlTimeSeconds: number;
+  controlMode: "automatic" | "opening" | "closing" | "stopped";
 }
 
 /**
@@ -117,6 +122,15 @@ export class KinematicMoverSystem {
 
     this.root.name = "kinematic-movers";
     this.sceneRoot.add(this.root);
+    const rotatingBarSources =
+      options.rotatingBars ??
+      (options.enabled === false ? [] : SANDBOX_MOVER_SOURCE_REFERENCE.rotatingBars);
+    const movingPlatformSources =
+      options.movingPlatforms ??
+      (options.enabled === false ? [] : SANDBOX_MOVER_SOURCE_REFERENCE.movingPlatforms);
+    if (rotatingBarSources.length === 0 && movingPlatformSources.length === 0) {
+      return;
+    }
 
     const unitGeometry = new BoxGeometry(1, 1, 1);
     const barMaterial = new MeshStandardMaterial({
@@ -132,10 +146,10 @@ export class KinematicMoverSystem {
     this.geometries.push(unitGeometry);
     this.materials.push(barMaterial, platformMaterial);
 
-    for (const source of SANDBOX_MOVER_SOURCE_REFERENCE.rotatingBars) {
+    for (const source of rotatingBarSources) {
       this.rotatingBars.push(this.createRotatingBar(source, unitGeometry, barMaterial));
     }
-    for (const source of SANDBOX_MOVER_SOURCE_REFERENCE.movingPlatforms) {
+    for (const source of movingPlatformSources) {
       this.movingPlatforms.push(this.createMovingPlatform(source, unitGeometry, platformMaterial));
     }
   }
@@ -160,11 +174,30 @@ export class KinematicMoverSystem {
       bar.body.setNextKinematicRotation(bar.nextRotation);
     }
 
+    const deltaSeconds = Math.max(0, nextSimulationTimeSeconds - this.currentSimulationTimeSeconds);
     for (const platform of this.movingPlatforms) {
       platform.binding.beginFixedStep();
+      let motionTimeSeconds = nextSimulationTimeSeconds;
+      if (platform.controlMode !== "automatic") {
+        if (platform.controlMode === "opening") {
+          platform.controlTimeSeconds = Math.min(
+            platform.source.authoredOneWayTravelSeconds,
+            platform.controlTimeSeconds + deltaSeconds,
+          );
+          if (platform.controlTimeSeconds >= platform.source.authoredOneWayTravelSeconds - 1e-9) {
+            platform.controlMode = "stopped";
+          }
+        } else if (platform.controlMode === "closing") {
+          platform.controlTimeSeconds = Math.max(0, platform.controlTimeSeconds - deltaSeconds);
+          if (platform.controlTimeSeconds <= 1e-9) {
+            platform.controlMode = "stopped";
+          }
+        }
+        motionTimeSeconds = platform.controlTimeSeconds;
+      }
       platform.phase = writePlatformPositionAtTime(
         platform.source,
-        nextSimulationTimeSeconds,
+        motionTimeSeconds,
         platform.nextPosition,
       );
       platform.body.setNextKinematicTranslation(platform.nextPosition);
@@ -222,9 +255,11 @@ export class KinematicMoverSystem {
     }
 
     for (const platform of this.movingPlatforms) {
+      platform.controlTimeSeconds = 0;
+      platform.controlMode = platform.source.initiallyStopped === true ? "stopped" : "automatic";
       platform.phase = writePlatformPositionAtTime(
         platform.source,
-        simulationTimeSeconds,
+        platform.controlMode === "automatic" ? simulationTimeSeconds : 0,
         platform.nextPosition,
       );
       platform.body.setTranslation(platform.nextPosition, false);
@@ -237,6 +272,45 @@ export class KinematicMoverSystem {
     this.preparedSimulationTimeSeconds = simulationTimeSeconds;
     this.currentSimulationTimeSeconds = simulationTimeSeconds;
     this.stepPrepared = false;
+  }
+
+  public commandMovingPlatform(
+    id: string,
+    action: "open" | "close" | "toggle" | "start" | "stop" | "reverse" | "reset",
+  ): boolean {
+    this.assertUsable();
+    const platform = this.movingPlatforms.find((candidate) => candidate.source.id === id);
+    if (platform === undefined) {
+      return false;
+    }
+    if (action === "reset") {
+      platform.controlTimeSeconds = 0;
+      platform.controlMode = platform.source.initiallyStopped === true ? "stopped" : "automatic";
+    } else if (action === "stop") {
+      if (platform.controlMode === "automatic") {
+        platform.controlTimeSeconds =
+          this.currentSimulationTimeSeconds %
+          (2 * (platform.source.authoredOneWayTravelSeconds + platform.source.endpointHoldSeconds));
+      }
+      platform.controlMode = "stopped";
+    } else if (action === "open" || action === "start") {
+      platform.controlMode = platform.source.initiallyStopped === true ? "opening" : "automatic";
+    } else if (action === "close") {
+      platform.controlMode = "closing";
+    } else if (action === "toggle") {
+      platform.controlMode =
+        platform.controlTimeSeconds >= platform.source.authoredOneWayTravelSeconds / 2
+          ? "closing"
+          : "opening";
+    } else {
+      platform.controlMode =
+        platform.controlMode === "opening"
+          ? "closing"
+          : platform.controlMode === "closing"
+            ? "opening"
+            : "closing";
+    }
+    return true;
   }
 
   public debugSnapshot(): KinematicMoverDebugSnapshot {
@@ -316,7 +390,8 @@ export class KinematicMoverSystem {
       body,
     );
 
-    const mesh = new Mesh(geometry, material);
+    const appliedMaterial = this.sourceMaterial(source.color, material, 0.8);
+    const mesh = new Mesh(geometry, appliedMaterial);
     mesh.name = source.id;
     mesh.scale.set(source.scale.x, source.scale.y, source.scale.z);
     configureShadowMesh(mesh);
@@ -338,11 +413,9 @@ export class KinematicMoverSystem {
     const nextPosition: MutableVector3 = { x: 0, y: 0, z: 0 };
     const phase = writePlatformPositionAtTime(source, 0, nextPosition);
     const body = this.world.createRigidBody(
-      this.rapier.RigidBodyDesc.kinematicPositionBased().setTranslation(
-        nextPosition.x,
-        nextPosition.y,
-        nextPosition.z,
-      ),
+      this.rapier.RigidBodyDesc.kinematicPositionBased()
+        .setTranslation(nextPosition.x, nextPosition.y, nextPosition.z)
+        .setRotation(source.rotation ?? { x: 0, y: 0, z: 0, w: 1 }),
     );
     this.world.createCollider(
       this.rapier.ColliderDesc.cuboid(source.size.x / 2, source.size.y / 2, source.size.z / 2)
@@ -351,7 +424,8 @@ export class KinematicMoverSystem {
       body,
     );
 
-    const mesh = new Mesh(geometry, material);
+    const appliedMaterial = this.sourceMaterial(source.color, material, 0.82);
+    const mesh = new Mesh(geometry, appliedMaterial);
     mesh.name = source.id;
     mesh.scale.set(source.size.x, source.size.y, source.size.z);
     configureShadowMesh(mesh);
@@ -363,6 +437,8 @@ export class KinematicMoverSystem {
       binding: new PhysicsRenderBinding(body, mesh),
       nextPosition,
       phase,
+      controlTimeSeconds: 0,
+      controlMode: source.initiallyStopped === true ? "stopped" : "automatic",
     };
   }
 
@@ -370,6 +446,19 @@ export class KinematicMoverSystem {
     if (this.disposed) {
       throw new Error("KinematicMoverSystem has been disposed.");
     }
+  }
+
+  private sourceMaterial(
+    color: string | number | undefined,
+    fallback: Material,
+    roughness: number,
+  ): Material {
+    if (color === undefined) {
+      return fallback;
+    }
+    const material = new MeshStandardMaterial({ color, metalness: 0, roughness });
+    this.materials.push(material);
+    return material;
   }
 }
 

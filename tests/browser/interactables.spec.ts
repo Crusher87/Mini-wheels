@@ -14,13 +14,13 @@ test("INT-001/002/003/004/009: floor and ramp boosters add velocity to cars and 
 }) => {
   await startSandbox(page);
   await page.evaluate(() =>
-    window.__TINY_TRACTION_TEST__?.setVehicleState(0, {
+    window.__MINI_WHEELS_TEST__?.setVehicleState(0, {
       position: { x: 32.97, y: 0.22, z: -29.68 },
       linearVelocity: { x: 1, y: 0, z: 2 },
     }),
   );
   const carBoostHandle = await page.waitForFunction(() => {
-    const snapshot = window.__TINY_TRACTION_TEST__?.snapshot();
+    const snapshot = window.__MINI_WHEELS_TEST__?.snapshot();
     return snapshot?.interactions.boosters.activationCount === 1 ? snapshot : false;
   });
   const carBoost = await carBoostHandle.jsonValue();
@@ -43,18 +43,18 @@ test("INT-001/002/003/004/009: floor and ramp boosters add velocity to cars and 
   await page.waitForTimeout(250);
   expect(
     await page.evaluate(
-      () => window.__TINY_TRACTION_TEST__?.snapshot()?.interactions.boosters.activationCount,
+      () => window.__MINI_WHEELS_TEST__?.snapshot()?.interactions.boosters.activationCount,
     ),
   ).toBe(1);
 
   await page.evaluate(() =>
-    window.__TINY_TRACTION_TEST__?.setBallState(0, {
+    window.__MINI_WHEELS_TEST__?.setBallState(0, {
       position: { x: -12.49, y: 4.19, z: -8.83 },
       linearVelocity: { x: 2, y: 0, z: 0 },
     }),
   );
   const ballBoostHandle = await page.waitForFunction(() => {
-    const snapshot = window.__TINY_TRACTION_TEST__?.snapshot();
+    const snapshot = window.__MINI_WHEELS_TEST__?.snapshot();
     return snapshot?.interactions.boosters.activationCount === 2 ? snapshot : false;
   });
   const ballBoost = await ballBoostHandle.jsonValue();
@@ -86,14 +86,14 @@ test("INT-005/006/007/008/009: paired portals redirect cars and balls without lo
 }) => {
   await startSandbox(page);
   await page.evaluate(() =>
-    window.__TINY_TRACTION_TEST__?.setVehicleState(0, {
+    window.__MINI_WHEELS_TEST__?.setVehicleState(0, {
       position: { x: 32.8, y: 2, z: -33.6 },
       linearVelocity: { x: 5, y: 0, z: 0 },
       angularVelocity: { x: 1, y: 2, z: 3 },
     }),
   );
   const carPortalHandle = await page.waitForFunction(() => {
-    const snapshot = window.__TINY_TRACTION_TEST__?.snapshot();
+    const snapshot = window.__MINI_WHEELS_TEST__?.snapshot();
     return snapshot?.interactions.portals.teleportCount === 1 ? snapshot : false;
   });
   const carPortal = await carPortalHandle.jsonValue();
@@ -124,14 +124,14 @@ test("INT-005/006/007/008/009: paired portals redirect cars and balls without lo
   expect(carPortal.particles.liveCount).toBeGreaterThan(0);
 
   await page.evaluate(() =>
-    window.__TINY_TRACTION_TEST__?.setBallState(1, {
+    window.__MINI_WHEELS_TEST__?.setBallState(1, {
       position: { x: 19.4, y: 2, z: 31.1 },
       linearVelocity: { x: 0, y: 0, z: 5 },
       angularVelocity: { x: -1, y: 0.5, z: 2 },
     }),
   );
   const ballPortalHandle = await page.waitForFunction(() => {
-    const snapshot = window.__TINY_TRACTION_TEST__?.snapshot();
+    const snapshot = window.__MINI_WHEELS_TEST__?.snapshot();
     return snapshot?.interactions.portals.teleportCount === 2 ? snapshot : false;
   });
   const ballPortal = await ballPortalHandle.jsonValue();
@@ -169,7 +169,7 @@ test("INT-005/006/007/008/009: paired portals redirect cars and balls without lo
   // is valid gameplay and is not an infinite-loop condition.
   await page.waitForTimeout(120);
   const settledTeleportCount = await page.evaluate(
-    () => window.__TINY_TRACTION_TEST__?.snapshot()?.interactions.portals.teleportCount,
+    () => window.__MINI_WHEELS_TEST__?.snapshot()?.interactions.portals.teleportCount,
   );
   expect(settledTeleportCount).toBeGreaterThanOrEqual(2);
   expect(settledTeleportCount).toBeLessThanOrEqual(3);

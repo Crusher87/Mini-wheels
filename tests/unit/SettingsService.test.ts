@@ -7,6 +7,7 @@ import {
 } from "../../src/persistence/schema";
 import {
   LEGACY_SETTINGS_STORAGE_KEY,
+  PREVIOUS_SETTINGS_STORAGE_KEY,
   SETTINGS_STORAGE_KEY,
   SettingsService,
 } from "../../src/persistence/SettingsService";
@@ -90,7 +91,7 @@ describe("SettingsService", () => {
     expect(JSON.parse(memory.values.get(SETTINGS_STORAGE_KEY) ?? "null")).toEqual(settings);
   });
 
-  it("round-trips every v2 graphics, audio, accessibility, and control option", () => {
+  it("round-trips every v4 graphics, audio, accessibility, and control option", () => {
     const memory = createMemoryStorage();
     const service = new SettingsService(memory.storage, { prefersReducedMotion: false });
     service.load();
@@ -125,7 +126,7 @@ describe("SettingsService", () => {
     expect(memory.writes.at(-1)?.key).toBe(SETTINGS_STORAGE_KEY);
   });
 
-  it("migrates the existing v1 storage key and persists a v2 document", () => {
+  it("migrates the existing v1 storage key and persists a v4 document", () => {
     const memory = createMemoryStorage({
       [LEGACY_SETTINGS_STORAGE_KEY]: JSON.stringify({
         schemaVersion: 1,
@@ -165,6 +166,44 @@ describe("SettingsService", () => {
     expect(JSON.parse(memory.values.get(SETTINGS_STORAGE_KEY) ?? "null")).toEqual(settings);
   });
 
+  it("migrates the previous product key and repairs exact reversed-default workarounds", () => {
+    const memory = createMemoryStorage({
+      [PREVIOUS_SETTINGS_STORAGE_KEY]: JSON.stringify({
+        ...DEFAULT_SETTINGS,
+        schemaVersion: 2,
+        playerCount: 2,
+        playerInputs: DEFAULT_SETTINGS.playerInputs.map((input, index) =>
+          index === 0
+            ? {
+                ...input,
+                keyboard: {
+                  up: "ArrowDown",
+                  down: "ArrowUp",
+                  left: "ArrowRight",
+                  right: "ArrowLeft",
+                },
+              }
+            : input,
+        ),
+      }),
+    });
+
+    const settings = new SettingsService(memory.storage, {
+      prefersReducedMotion: false,
+    }).load();
+
+    expect(settings.schemaVersion).toBe(SETTINGS_SCHEMA_VERSION);
+    expect(settings.playerInputs[0]?.keyboard).toEqual({
+      up: "ArrowUp",
+      down: "ArrowDown",
+      left: "ArrowLeft",
+      right: "ArrowRight",
+      brake: "ShiftRight",
+    });
+    expect(memory.writes).toHaveLength(1);
+    expect(memory.writes[0]?.key).toBe(SETTINGS_STORAGE_KEY);
+  });
+
   it("migrates unversioned documents accepted by the original service", () => {
     const settings = SettingsService.validate({
       playerCount: 3,
@@ -177,6 +216,22 @@ describe("SettingsService", () => {
     expect(settings.renderScale).toBe(0.75);
     expect(settings.cameraSmoothing).toBe("default");
     expect(settings.particleDensity).toBe("full");
+  });
+
+  it("adds the default brake binding when migrating a v3 document", () => {
+    const settings = SettingsService.validate({
+      ...DEFAULT_SETTINGS,
+      schemaVersion: 3,
+      playerInputs: DEFAULT_SETTINGS.playerInputs.map((input) => {
+        const { brake: _brake, ...keyboard } = input.keyboard;
+        void _brake;
+        return { ...input, keyboard };
+      }),
+    });
+
+    expect(settings.schemaVersion).toBe(4);
+    expect(settings.playerInputs[0]?.keyboard.brake).toBe("ShiftLeft");
+    expect(settings.playerInputs[1]?.keyboard.brake).toBe("ShiftRight");
   });
 
   it("salvages recognized fields from a future schema version", () => {
@@ -283,6 +338,7 @@ describe("SettingsService", () => {
       down: "KeyS",
       left: "KeyA",
       right: "KeyD",
+      brake: "ShiftLeft",
     });
     expect(settings.playerInputs[0]?.controllerIdHint).toBe("Pad");
     expect(settings.playerInputs[0]?.controllerMappingHint).toBeNull();

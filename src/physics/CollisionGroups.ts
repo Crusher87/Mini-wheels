@@ -12,6 +12,7 @@ export const enum CollisionLayer {
   PortalSensor = 1 << 5,
   BoosterSensor = 1 << 6,
   ResetSensor = 1 << 7,
+  RaceSensor = 1 << 8,
 }
 
 const ALL_LAYERS = 0xffff;
@@ -36,7 +37,16 @@ export const COLLISION_GROUPS = Object.freeze({
       CollisionLayer.MovingObstacle |
       CollisionLayer.PortalSensor |
       CollisionLayer.BoosterSensor |
-      CollisionLayer.ResetSensor,
+      CollisionLayer.ResetSensor |
+      CollisionLayer.RaceSensor,
+  ),
+  protectedCar: interactionGroups(
+    CollisionLayer.Car,
+    CollisionLayer.Ground |
+      CollisionLayer.PortalSensor |
+      CollisionLayer.BoosterSensor |
+      CollisionLayer.ResetSensor |
+      CollisionLayer.RaceSensor,
   ),
   dynamicToy: interactionGroups(
     CollisionLayer.DynamicToy,
@@ -47,7 +57,8 @@ export const COLLISION_GROUPS = Object.freeze({
       CollisionLayer.MovingObstacle |
       CollisionLayer.PortalSensor |
       CollisionLayer.BoosterSensor |
-      CollisionLayer.ResetSensor,
+      CollisionLayer.ResetSensor |
+      CollisionLayer.RaceSensor,
   ),
   staticObstacle: interactionGroups(
     CollisionLayer.StaticObstacle,
@@ -63,4 +74,5 @@ export const COLLISION_GROUPS = Object.freeze({
     CollisionLayer.ResetSensor,
     CollisionLayer.Car | CollisionLayer.DynamicToy,
   ),
+  raceSensor: interactionGroups(CollisionLayer.RaceSensor, CollisionLayer.Car),
 });
