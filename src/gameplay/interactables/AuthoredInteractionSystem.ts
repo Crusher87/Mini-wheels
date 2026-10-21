@@ -229,6 +229,10 @@ export class AuthoredInteractionSystem {
         const targetTimer = this.timers.find((timer) => timer.entity.id === target.id);
         if (targetTimer !== undefined) {
           if (interaction.action === "start") {
+            const duration = numberProperty(targetTimer.entity, "durationSeconds", 3);
+            if (!targetTimer.running && targetTimer.elapsedSeconds + 1e-9 >= duration) {
+              targetTimer.elapsedSeconds = 0;
+            }
             targetTimer.running = true;
           } else if (interaction.action === "stop") {
             targetTimer.running = false;

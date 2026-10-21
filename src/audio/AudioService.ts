@@ -426,6 +426,13 @@ export class AudioService {
       if (this.context.state === "suspended") {
         await this.context.resume();
       }
+      if (
+        this.context.state === "running" &&
+        this.musicVoice === undefined &&
+        this.requestedMusic !== null
+      ) {
+        this.startRequestedMusic();
+      }
       return this.context.state === "running";
     } catch {
       return false;

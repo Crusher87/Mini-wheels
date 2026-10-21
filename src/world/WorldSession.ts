@@ -330,6 +330,8 @@ export class WorldSession {
   private readonly driftSparkEmissionAccumulator = new Float32Array(10);
   private readonly latestThrottle = new Float32Array(10);
   private readonly pendingAuthoredRecoveries = new Map<number, PendingAuthoredRecovery>();
+  /** Vehicle colliders currently inside each race trigger, keyed by body handle and trigger. */
+  private readonly raceTriggerContacts = new Map<string, Set<number>>();
   private readonly checkpointRecoveryPoses: (VehicleRecoveryPose | null)[] = [];
   private readonly initialRecoveryPoses: VehicleRecoveryPose[] = [];
   private readonly onVehicleRecovery: ((playerIndex: number) => void) | undefined;
@@ -725,6 +727,7 @@ export class WorldSession {
       return;
     }
     vehicle.physics.teleport({ x: 5, y: -4, z: 5 }, { x: 0, y: 0, z: 0, w: 1 }, false);
+    vehicle.synchronizeAfterExternalTeleport();
   }
 
   public debugMoveVehicle(
@@ -736,6 +739,7 @@ export class WorldSession {
       throw new RangeError(`No active vehicle exists at index ${String(playerIndex)}.`);
     }
     vehicle.physics.teleport(position, { x: 0, y: 0, z: 0, w: 1 }, false);
+    vehicle.synchronizeAfterExternalTeleport();
     this.resetVehicleSurfaceEffects(playerIndex);
   }
 
@@ -935,9 +939,6 @@ export class WorldSession {
     colliderHandleB: number,
     started: boolean,
   ): void {
-    if (!started) {
-      return;
-    }
     const triggerA = this.arena.raceTriggerForCollider(colliderHandleA);
     const triggerB = this.arena.raceTriggerForCollider(colliderHandleB);
     const trigger = triggerA ?? triggerB;
@@ -956,12 +957,35 @@ export class WorldSession {
     if (playerIndex < 0) {
       return;
     }
+    // A car has several chassis colliders; only its first one entering a trigger counts.
+    const contactKey = `${body.handle}:${trigger.entityId}`;
+    let contacts = this.raceTriggerContacts.get(contactKey);
+    if (!started) {
+      contacts?.delete(vehicleColliderHandle);
+      if (contacts?.size === 0) {
+        this.raceTriggerContacts.delete(contactKey);
+      }
+      return;
+    }
+    if (contacts === undefined) {
+      contacts = new Set();
+      this.raceTriggerContacts.set(contactKey, contacts);
+    }
+    const firstContact = contacts.size === 0;
+    contacts.add(vehicleColliderHandle);
+    if (!firstContact) {
+      return;
+    }
     const velocity = body.linvel();
-    const forward =
+    const alongGate =
       velocity.x * trigger.forward.x +
-        velocity.y * trigger.forward.y +
-        velocity.z * trigger.forward.z >
-      0.2;
+      velocity.y * trigger.forward.y +
+      velocity.z * trigger.forward.z;
+    // Nearly stationary contacts (such as a recovery placed inside a gate) are not crossings.
+    if (Math.abs(alongGate) <= 0.2) {
+      return;
+    }
+    const forward = alongGate > 0;
     if (trigger.kind === "checkpoint") {
       const outcome = this.raceProgress.crossCheckpoint(playerIndex, trigger.entityId, forward);
       if (

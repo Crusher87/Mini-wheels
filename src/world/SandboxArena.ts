@@ -385,6 +385,8 @@ export class SandboxArena {
       }
     }
     this.ownedBodies.length = 0;
+    this.cubeMesh.dispose();
+    this.ballMesh.dispose();
     for (const geometry of this.geometries) {
       geometry.dispose();
     }

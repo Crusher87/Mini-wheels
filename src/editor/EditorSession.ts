@@ -516,6 +516,14 @@ export class EditorSession {
     this.documentValue = withMapTitle(this.documentValue, title);
   }
 
+  /** The map's name and tags are not part of undo history, so undo/redo keeps the latest ones. */
+  private withCurrentNameAndTags(document: MapDocument): MapDocument {
+    return Object.freeze({
+      ...withMapTitle(document, this.documentValue.header.title),
+      metadata: this.documentValue.metadata,
+    });
+  }
+
   public setTags(tags: readonly string[]): void {
     const normalized = [
       ...new Set(tags.map((tag) => tag.trim().toLocaleLowerCase()).filter(Boolean)),
@@ -798,13 +806,13 @@ export class EditorSession {
       const appended = smoothed
         .slice(1, -1)
         .map((position) => createTrackNode(position, anchorNode, this.createId));
-      nextNodes = rebuildTrackTangents([...current.nodes, ...appended]);
+      nextNodes = [...current.nodes, ...appended];
     } else if (side === "end") {
       const extension = smoothTrackExtension(current, elevated);
       const appended = extension
         .slice(1)
         .map((position) => createTrackNode(position, anchorNode, this.createId));
-      nextNodes = rebuildTrackTangents([...current.nodes, ...appended]);
+      nextNodes = [...current.nodes, ...appended];
     } else {
       const reversedTrack = { ...current, nodes: [...current.nodes].reverse() };
       const extension = smoothTrackExtension(reversedTrack, elevated);
@@ -812,7 +820,7 @@ export class EditorSession {
         .slice(1)
         .reverse()
         .map((position) => createTrackNode(position, anchorNode, this.createId));
-      nextNodes = rebuildTrackTangents([...prepended, ...current.nodes]);
+      nextNodes = [...prepended, ...current.nodes];
     }
     if (nextNodes.length === current.nodes.length) {
       return false;
@@ -853,7 +861,7 @@ export class EditorSession {
         updateTrack(document, trackId, (track) => ({
           ...track,
           closed: shouldClose,
-          nodes: nextNodes,
+          nodes: nextTrack.nodes,
           walls,
           roadRanges,
         })),
@@ -912,9 +920,23 @@ export class EditorSession {
           this.createId,
         ),
       );
-    let nodes = rebuildTrackTangents([...sourceNodes, ...bridgeNodes, ...targetNodes]);
-    nodes = rebuildTrackTangentsPreservingManual(sourceOriented, nodes, false);
-    nodes = rebuildTrackTangentsPreservingManual(targetOriented, nodes, false);
+    const joinedNodes = [...sourceNodes, ...bridgeNodes, ...targetNodes];
+    const sourceIds = new Set(sourceNodes.map((node) => node.id));
+    const sourcePreserved = rebuildTrackTangentsPreservingManual(
+      sourceOriented,
+      joinedNodes,
+      false,
+    );
+    const targetPreserved = rebuildTrackTangentsPreservingManual(
+      targetOriented,
+      joinedNodes,
+      false,
+    );
+    const nodes = Object.freeze(
+      joinedNodes.map((node, index) =>
+        sourceIds.has(node.id) ? sourcePreserved[index]! : targetPreserved[index]!,
+      ),
+    );
     const joinedWithoutWalls: TrackDefinition = {
       ...source,
       closed: false,
@@ -2377,7 +2399,7 @@ export class EditorSession {
     if (entry === undefined) {
       return false;
     }
-    this.documentValue = entry.before;
+    this.documentValue = this.withCurrentNameAndTags(entry.before);
     this.selectedIdsValue = entry.selectionBefore;
     this.redoStack.push(entry);
     return true;
@@ -2389,7 +2411,7 @@ export class EditorSession {
     if (entry === undefined) {
       return false;
     }
-    this.documentValue = entry.after;
+    this.documentValue = this.withCurrentNameAndTags(entry.after);
     this.selectedIdsValue = entry.selectionAfter;
     this.undoStack.push(entry);
     return true;

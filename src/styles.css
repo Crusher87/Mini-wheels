@@ -63,8 +63,6 @@ input:focus-visible {
 }
 
 .game-root {
-  --marker-user-scale: 1;
-
   position: relative;
   isolation: isolate;
   width: 100%;
@@ -72,18 +70,6 @@ input:focus-visible {
   min-width: 320px;
   background: radial-gradient(circle at 76% 28%, rgb(255 255 255 / 28%), transparent 34%), #a5b3c4;
   overflow: hidden;
-}
-
-.game-root[data-marker-size="small"] {
-  --marker-user-scale: 0.82;
-}
-
-.game-root[data-marker-size="large"] {
-  --marker-user-scale: 1.24;
-}
-
-.game-root[data-marker-size] .player-marker {
-  scale: var(--marker-user-scale);
 }
 
 .game-root.is-controller-navigation,

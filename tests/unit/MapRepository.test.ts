@@ -47,6 +47,20 @@ describe("MapRepository", () => {
     expect(await repository.getMap("missing")).toBeNull();
   });
 
+  it("keeps duplicated titles within the title limit", async () => {
+    let id = 0;
+    const createId = () => `long-title-${String(++id)}`;
+    const repository = new MapRepository({ indexedDB: null, createId });
+    await repository.initialize();
+    const longTitle = "L".repeat(80);
+    const created = await repository.createMap(createStarterMapDocument(longTitle, createId));
+
+    const duplicate = await repository.duplicateMap(created.localMapId);
+
+    expect(duplicate.document.header.title).toHaveLength(80);
+    expect(duplicate.document.header.title.endsWith(" Copy")).toBe(true);
+  });
+
   it("stores local prefabs while placed copies remain self-contained", async () => {
     let id = 0;
     const createId = () => `prefab-repository-${String(++id)}`;

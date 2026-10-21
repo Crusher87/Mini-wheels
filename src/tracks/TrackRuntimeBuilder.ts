@@ -97,8 +97,13 @@ export function buildRuntimeTrack(
     const influence = roadRangeInfluence(range, authoredDistance);
     const width = range === undefined ? baseWidth : lerp(baseWidth, range.width, influence);
     const bank = range === undefined ? baseBank : lerp(baseBank, range.bankRadians, influence);
-    const previous = sampled[Math.max(0, index - 1)]?.point ?? sample.point;
-    const next = sampled[Math.min(sampled.length - 1, index + 1)]?.point ?? sample.point;
+    // Closed loops repeat their first sample at the end, so wrap across that seam.
+    const wrapsSeam = track.closed && sampled.length > 2;
+    const previousIndex = index === 0 && wrapsSeam ? sampled.length - 2 : Math.max(0, index - 1);
+    const nextIndex =
+      index === sampled.length - 1 && wrapsSeam ? 1 : Math.min(sampled.length - 1, index + 1);
+    const previous = sampled[previousIndex]?.point ?? sample.point;
+    const next = sampled[nextIndex]?.point ?? sample.point;
     const tangent = normalize(subtract(next, previous), [0, 0, 1]);
     const flatLateral = normalize(cross([0, 1, 0], tangent), [1, 0, 0]);
     const lateral = rotateAroundAxis(flatLateral, tangent, bank);

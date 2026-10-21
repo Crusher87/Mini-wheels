@@ -4,8 +4,11 @@ import { GameApp } from "./app/GameApp";
 
 const app = new GameApp();
 
-window.addEventListener("beforeunload", () => {
-  void app.dispose();
+window.addEventListener("pagehide", (event) => {
+  // A page kept in the back/forward cache must stay alive so it works when restored.
+  if (!event.persisted) {
+    void app.dispose();
+  }
 });
 
 void app.initialize();

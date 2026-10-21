@@ -240,6 +240,7 @@ export class ParticlePool {
     this.disposed = true;
     this.sceneRoot.remove(this.root);
     this.root.clear();
+    this.mesh.dispose();
     this.geometry.dispose();
     this.material.dispose();
   }

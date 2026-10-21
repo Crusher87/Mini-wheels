@@ -1394,6 +1394,9 @@ export class GameApp {
       this.pause("Paused because the tab was hidden.");
     }
     void this.audio.setPageHidden(document.hidden);
+    if (!document.hidden && this.state !== AppState.Paused) {
+      void this.audio.resume();
+    }
     this.fixedStep.reset();
     this.previousNow = performance.now();
   };
@@ -1849,7 +1852,7 @@ export class GameApp {
       this.editorSession = undefined;
       this.state = AppState.Loading;
       this.ui.show("loading");
-      this.ui.setLoadingStatus(`Loading ${record.document.header.title}â€¦`);
+      this.ui.setLoadingStatus(`Loading ${record.document.header.title}…`);
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       this.worldSession?.dispose();
       this.audio.setMapMusic(
@@ -1875,6 +1878,12 @@ export class GameApp {
         this.ui.toast("Race rules are incomplete, so this launch is safe Free Drive.");
       }
     } catch (error) {
+      this.worldSession?.dispose();
+      this.worldSession = undefined;
+      this.playtestBlueprint = undefined;
+      this.normalMapPlay = false;
+      this.audio.setMapMusic(null);
+      this.input.setGameplayEnabled(false);
       this.state = AppState.MapLibrary;
       this.ui.show("map-library");
       this.ui.toast(`Map could not start: ${errorMessage(error)}`);
@@ -1976,7 +1985,7 @@ export class GameApp {
       link.href = url;
       link.download = `${filename || "mini-wheels-map"}.mini-wheels.json`;
       link.click();
-      URL.revokeObjectURL(url);
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
       this.ui.toast("Portable map backup exported.");
     } catch (error) {
       this.ui.toast(`Map could not be exported: ${errorMessage(error)}`);
@@ -2098,7 +2107,7 @@ export class GameApp {
       session.commitContinuousEdit();
       session.setTitle(normalizedTitle);
       const savedDocument = session.document;
-      await this.editorRecoveryWrite;
+      await this.editorRecoveryWrite.catch(() => undefined);
       window.clearTimeout(this.editorAutosaveTimeout);
       this.editorAutosaveTimeout = undefined;
       const saved = await this.mapRepository.saveMap(current.localMapId, savedDocument);
@@ -2176,7 +2185,7 @@ export class GameApp {
     this.editorPreview = undefined;
     this.state = AppState.Loading;
     this.ui.show("loading");
-    this.ui.setLoadingStatus("Building your test trackâ€¦");
+    this.ui.setLoadingStatus("Building your test track…");
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
     this.worldSession?.dispose();
     this.worldSession = this.createWorldSession(blueprint);

@@ -123,7 +123,15 @@ export class MapRepository {
       stored
         .filter((record) => options.includeTrashed === true || record.trashedAt === null)
         .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
-        .map((record) => this.decodeRecord(record)),
+        .flatMap((record) => {
+          // One unreadable map must not hide every other map in the library.
+          try {
+            return [this.decodeRecord(record)];
+          } catch (error) {
+            console.warn(`Skipping unreadable map "${record.localMapId}".`, error);
+            return [];
+          }
+        }),
     );
   }
 
@@ -187,7 +195,11 @@ export class MapRepository {
       throw new Error(`Map "${localMapId}" no longer exists.`);
     }
     return this.createMap(
-      duplicateMapDocument(source.document, `${source.document.header.title} Copy`, this.createId),
+      duplicateMapDocument(
+        source.document,
+        titleWithSuffix(source.document.header.title, " Copy"),
+        this.createId,
+      ),
     );
   }
 
@@ -278,7 +290,7 @@ export class MapRepository {
     return this.createMap(
       duplicateMapDocument(
         point.document,
-        `${point.document.header.title} Recovered Copy`,
+        titleWithSuffix(point.document.header.title, " Recovered Copy"),
         this.createId,
       ),
     );
@@ -608,6 +620,11 @@ export class MapRepository {
       return null;
     }
   }
+}
+
+/** Keeps generated titles within the codec's 80-character title limit. */
+function titleWithSuffix(title: string, suffix: string): string {
+  return `${title.slice(0, 80 - suffix.length).trimEnd()}${suffix}`;
 }
 
 function mapThumbnailDataUrl(document: MapDocument): string {
