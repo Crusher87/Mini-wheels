@@ -10,3 +10,5 @@ Mini_Wheels_ThreeJS_Reconstruction_Package/
 Mini_Wheels_ThreeJS_Reconstruction_Package.zip
 .DS_Store
 Thumbs.db
+.vercel/
+.vercel
