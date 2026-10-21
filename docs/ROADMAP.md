@@ -40,14 +40,20 @@ in `src/editor/EditorAssetCatalog.ts`), but Test Mode only carries out a few of 
 
 Rule: every common action is reachable in one or two clicks from where the player is.
 
-- [ ] Audit every screen and editor panel; record click depth for each action.
-- [ ] Editor: an always-visible icon toolbar for the main tools (select, move, road,
-      walls, objects, test drive, undo/redo, save) with text labels on hover/focus.
-- [ ] Object tray as icon tiles grouped by category, with search kept.
-- [ ] Context panel shows only what applies to the current selection; rarely used
-      settings fold away instead of moving to a separate screen.
-- [ ] Front end: big icon buttons for Play, Create, Settings; fewer steps to a race.
-- [ ] Keyboard and controller still reach everything; existing accessibility tests pass.
+- [x] Audit the main screens (2026-10-21): the road tool sat about 25 tiles down the
+      object tray, saved maps sat below the starter card, and the prefab form sat above
+      the selected object's settings.
+- [x] Editor: an always-visible icon toolbar (undo, redo, road, move, turn, size, top
+      view, help) next to Test Now and Save, each icon with a short label and tooltip.
+- [x] Object tray: eight category tabs (all, roads, floors, race, moving, boosts,
+      switches, decor); search still looks across everything.
+- [x] Context panel: the selected object's settings come first; prefab saving follows.
+- [x] Front end: Play → My Maps reaches saved maps in two clicks; the library lists
+      your maps before the starter card.
+- [x] Keyboard and controller still reach everything; existing accessibility tests pass.
+- [ ] Next: world and race settings fold into one-click sections; wall-paint and
+      range tools get toolbar icons when a road is selected; a first-run hint that
+      points at ROAD and TEST NOW.
 
 ## Stage 5: split-screen cameras
 

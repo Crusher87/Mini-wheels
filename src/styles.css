@@ -1362,6 +1362,7 @@ button.mode-card:not(:disabled):hover {
 .editor-transform-controls .icon-button {
   width: auto;
   min-width: 54px;
+  height: 54px;
   padding: 0 10px;
   font-size: 0.58rem;
   letter-spacing: 0.08em;
@@ -1441,6 +1442,73 @@ button.mode-card:not(:disabled):hover {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin-top: 14px;
+}
+
+.editor-category-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 12px;
+}
+
+.editor-category-tabs button {
+  display: grid;
+  min-width: 0;
+  min-height: 48px;
+  place-items: center;
+  gap: 2px;
+  padding: 6px 2px;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.55rem;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+}
+
+.editor-category-tabs button span {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.editor-category-tabs button:hover {
+  border-color: var(--cyan);
+}
+
+.editor-category-tabs button.is-active {
+  border-color: var(--ink);
+  color: #fff;
+  background: var(--ink);
+}
+
+.tool-button {
+  display: grid;
+  gap: 3px;
+  place-items: center;
+  align-content: center;
+}
+
+.tool-button svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.tool-button span {
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+}
+
+#editor-help-button.tool-button {
+  width: auto;
+  min-width: 54px;
+  height: 54px;
+  padding: 0 10px;
 }
 
 .editor-asset-card {

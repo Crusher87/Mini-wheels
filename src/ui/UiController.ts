@@ -428,6 +428,7 @@ export class UiController {
   private editorTutorialDemoTimeout: number | undefined;
   private mapLibraryItems: readonly MapLibraryItemView[] = Object.freeze([]);
   private mapLibraryTrashVisible = false;
+  private editorTrayCategory = "all";
   private pauseLabelsBeforeResults: { readonly heading: string; readonly reset: string } | null =
     null;
 
@@ -596,22 +597,22 @@ export class UiController {
     }
     const editorObjectSearch = requireElement<HTMLInputElement>("editor-object-search");
     editorObjectSearch.addEventListener("input", () => {
-      const query = editorObjectSearch.value.trim().toLocaleLowerCase();
-      for (const button of document.querySelectorAll<HTMLButtonElement>("[data-editor-asset]")) {
-        const assetId = button.dataset["editorAsset"] ?? "";
-        const manifest = editorAssetManifest(assetId);
-        const searchable =
-          manifest === null
-            ? assetId
-            : `${manifest.name} ${manifest.category} ${manifest.searchTerms.join(" ")}`;
-        button.hidden = query.length > 0 && !searchable.toLocaleLowerCase().includes(query);
-      }
-      const trackButton = requireElement<HTMLButtonElement>("editor-track-tool-button");
-      trackButton.hidden = query.length > 0 && !"track road spline draw".includes(query);
+      this.applyEditorTrayFilter(editorObjectSearch.value.trim().toLocaleLowerCase());
     });
+    this.applyEditorTrayFilter("");
     requireElement<HTMLButtonElement>("editor-track-tool-button").addEventListener("click", () =>
       this.handlers?.selectEditorTrackTool(),
     );
+    requireElement<HTMLButtonElement>("editor-draw-road-button").addEventListener("click", () =>
+      this.handlers?.selectEditorTrackTool(),
+    );
+    for (const tab of document.querySelectorAll<HTMLButtonElement>("[data-editor-category]")) {
+      tab.addEventListener("click", () => {
+        this.editorTrayCategory = tab.dataset["editorCategory"] ?? "all";
+        editorObjectSearch.value = "";
+        this.applyEditorTrayFilter("");
+      });
+    }
     for (const inputId of ["editor-track-width", "editor-track-elevation", "editor-track-bank"]) {
       requireElement<HTMLInputElement>(inputId).addEventListener("change", () =>
         this.emitEditorTrack(),
@@ -1361,7 +1362,38 @@ export class UiController {
     }
   }
 
+  /**
+   * Shows the object tiles for the chosen category tab. A search looks across
+   * every category so typing always finds the object.
+   */
+  private applyEditorTrayFilter(query: string): void {
+    const category = query.length > 0 ? "all" : this.editorTrayCategory;
+    for (const tab of document.querySelectorAll<HTMLButtonElement>("[data-editor-category]")) {
+      const active = tab.dataset["editorCategory"] === category;
+      tab.classList.toggle("is-active", active);
+      tab.setAttribute("aria-pressed", String(active));
+    }
+    for (const button of document.querySelectorAll<HTMLButtonElement>("[data-editor-asset]")) {
+      const assetId = button.dataset["editorAsset"] ?? "";
+      const manifest = editorAssetManifest(assetId);
+      const searchable =
+        manifest === null
+          ? assetId
+          : `${manifest.name} ${manifest.category} ${manifest.searchTerms.join(" ")}`;
+      button.hidden =
+        (query.length > 0 && !searchable.toLocaleLowerCase().includes(query)) ||
+        (category !== "all" && manifest?.category !== category);
+    }
+    const trackButton = requireElement<HTMLButtonElement>("editor-track-tool-button");
+    trackButton.hidden =
+      (query.length > 0 && !"track road spline draw".includes(query)) ||
+      (category !== "all" && category !== "track");
+  }
+
   public setEditorTrackTool(active: boolean): void {
+    const road = requireElement<HTMLButtonElement>("editor-draw-road-button");
+    road.classList.toggle("is-active", active);
+    road.setAttribute("aria-pressed", String(active));
     const button = requireElement<HTMLButtonElement>("editor-track-tool-button");
     button.classList.toggle("is-active", active);
     button.setAttribute("aria-pressed", String(active));

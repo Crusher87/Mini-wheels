@@ -575,26 +575,6 @@
           <div class="map-library-section">
             <div class="section-heading">
               <div>
-                <span class="eyebrow">PROTECTED STARTER</span>
-                <h3>START WITH SOMETHING</h3>
-              </div>
-            </div>
-            <article class="map-card map-card--built-in">
-              <div class="map-card__preview" aria-hidden="true"><i></i><i></i><i></i></div>
-              <div class="map-card__body">
-                <span class="status-chip">BUILT-IN · LOCKED</span>
-                <h3>STARTER PLAYGROUND</h3>
-                <p>A clean floor, a ten-car start grid, and room for big ideas.</p>
-                <button id="create-from-starter-button" class="button" type="button">
-                  <span>EDIT A COPY</span><span aria-hidden="true">→</span>
-                </button>
-              </div>
-            </article>
-          </div>
-
-          <div class="map-library-section">
-            <div class="section-heading">
-              <div>
                 <span class="eyebrow">SAVED ON THIS BROWSER</span>
                 <h3>YOUR MAPS</h3>
               </div>
@@ -621,6 +601,26 @@
               No maps yet. Make a playground and it will appear here.
             </p>
           </div>
+
+          <div class="map-library-section">
+            <div class="section-heading">
+              <div>
+                <span class="eyebrow">PROTECTED STARTER</span>
+                <h3>START WITH SOMETHING</h3>
+              </div>
+            </div>
+            <article class="map-card map-card--built-in">
+              <div class="map-card__preview" aria-hidden="true"><i></i><i></i><i></i></div>
+              <div class="map-card__body">
+                <span class="status-chip">BUILT-IN · LOCKED</span>
+                <h3>STARTER PLAYGROUND</h3>
+                <p>A clean floor, a ten-car start grid, and room for big ideas.</p>
+                <button id="create-from-starter-button" class="button" type="button">
+                  <span>EDIT A COPY</span><span aria-hidden="true">→</span>
+                </button>
+              </div>
+            </article>
+          </div>
         </section>
 
         <section
@@ -641,50 +641,111 @@
               >SAVED LOCALLY</span
             >
             <div class="editor-history-controls" aria-label="Edit history">
-              <button id="editor-undo-button" class="icon-button" type="button" disabled>
-                UNDO
+              <button
+                id="editor-undo-button"
+                class="icon-button tool-button"
+                type="button"
+                title="Undo (Ctrl+Z)"
+                disabled
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M9 14 4 9l5-5" />
+                  <path d="M4 9h11a5 5 0 0 1 0 10h-3" />
+                </svg>
+                <span>UNDO</span>
               </button>
-              <button id="editor-redo-button" class="icon-button" type="button" disabled>
-                REDO
+              <button
+                id="editor-redo-button"
+                class="icon-button tool-button"
+                type="button"
+                title="Redo (Ctrl+Y)"
+                disabled
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m15 14 5-5-5-5" />
+                  <path d="M20 9H9a5 5 0 0 0 0 10h3" />
+                </svg>
+                <span>REDO</span>
+              </button>
+            </div>
+            <div class="editor-transform-controls" aria-label="Tools">
+              <button
+                id="editor-draw-road-button"
+                class="icon-button tool-button"
+                type="button"
+                aria-pressed="false"
+                title="Draw a road: press and drag in the view"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 19c4 0 4-7 9-7s5-7 9-7" />
+                  <path d="M3 15c3 0 4-5 8-6" opacity=".45" />
+                </svg>
+                <span>ROAD</span>
+              </button>
+              <button
+                class="icon-button tool-button is-active"
+                type="button"
+                data-editor-transform="move"
+                aria-pressed="true"
+                title="Move the selected object"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 3v18M3 12h18" />
+                  <path d="m9 6 3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3" />
+                </svg>
+                <span>MOVE</span>
+              </button>
+              <button
+                class="icon-button tool-button"
+                type="button"
+                data-editor-transform="rotate"
+                aria-pressed="false"
+                title="Turn the selected object"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M20 12a8 8 0 1 1-3-6.2" />
+                  <path d="M20 4v5h-5" />
+                </svg>
+                <span>TURN</span>
+              </button>
+              <button
+                class="icon-button tool-button"
+                type="button"
+                data-editor-transform="scale"
+                aria-pressed="false"
+                title="Resize the selected object"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 9V4h5M20 15v5h-5M4 4l7 7M20 20l-7-7" />
+                </svg>
+                <span>SIZE</span>
               </button>
               <button
                 id="editor-top-down-button"
-                class="icon-button"
+                class="icon-button tool-button"
                 type="button"
                 aria-pressed="false"
                 title="Toggle top-down view"
               >
-                TOP
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="4" y="4" width="16" height="16" />
+                  <path d="M4 12h16M12 4v16" opacity=".45" />
+                </svg>
+                <span>TOP</span>
               </button>
             </div>
-            <div class="editor-transform-controls" aria-label="Transform tool">
-              <button
-                class="icon-button is-active"
-                type="button"
-                data-editor-transform="move"
-                aria-pressed="true"
-              >
-                MOVE
-              </button>
-              <button
-                class="icon-button"
-                type="button"
-                data-editor-transform="rotate"
-                aria-pressed="false"
-              >
-                TURN
-              </button>
-              <button
-                class="icon-button"
-                type="button"
-                data-editor-transform="scale"
-                aria-pressed="false"
-              >
-                SIZE
-              </button>
-            </div>
-            <button id="editor-help-button" class="icon-button" type="button" title="Tutorial">
-              ?
+            <button
+              id="editor-help-button"
+              class="icon-button tool-button"
+              type="button"
+              title="Tutorial"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7" />
+                <path d="M12 17h.01" />
+              </svg>
+              <span>HELP</span>
             </button>
             <button id="editor-test-button" class="button editor-test-button" type="button">
               TEST NOW
@@ -701,6 +762,32 @@
               <span class="sr-only">Search objects</span>
               <input id="editor-object-search" type="search" placeholder="Search objects" />
             </label>
+            <div class="editor-category-tabs" role="group" aria-label="Object categories">
+              <button type="button" data-editor-category="all" aria-pressed="true">
+                <span aria-hidden="true">✦</span>ALL
+              </button>
+              <button type="button" data-editor-category="track" aria-pressed="false">
+                <span aria-hidden="true">〰</span>ROADS
+              </button>
+              <button type="button" data-editor-category="floors" aria-pressed="false">
+                <span aria-hidden="true">▰</span>FLOORS
+              </button>
+              <button type="button" data-editor-category="race" aria-pressed="false">
+                <span aria-hidden="true">⚑</span>RACE
+              </button>
+              <button type="button" data-editor-category="physics" aria-pressed="false">
+                <span aria-hidden="true">●</span>MOVING
+              </button>
+              <button type="button" data-editor-category="travel" aria-pressed="false">
+                <span aria-hidden="true">➜</span>BOOSTS
+              </button>
+              <button type="button" data-editor-category="interaction" aria-pressed="false">
+                <span aria-hidden="true">◉</span>SWITCHES
+              </button>
+              <button type="button" data-editor-category="decoration" aria-pressed="false">
+                <span aria-hidden="true">✺</span>DECOR
+              </button>
+            </div>
             <div class="editor-asset-list" aria-label="Built-in construction assets">
               <button
                 class="editor-asset-card"
@@ -1609,20 +1696,6 @@
                 </button>
               </div>
             </section>
-            <section id="editor-prefab-save-panel" class="editor-selection-panel" hidden>
-              <span class="eyebrow">REUSE THIS BUILD</span>
-              <h3>SAVE AS PREFAB</h3>
-              <label class="editor-transform-grid__wide" for="editor-prefab-name">
-                <span>PREFAB NAME</span>
-                <input id="editor-prefab-name" maxlength="80" placeholder="My Cool Build" />
-              </label>
-              <button id="editor-save-prefab-button" class="button button--quiet" type="button">
-                SAVE SELECTION
-              </button>
-              <p class="editor-phase-note">
-                Prefabs place editable copies. Removing a prefab never removes placed objects.
-              </p>
-            </section>
             <section id="editor-selection-panel" class="editor-selection-panel" hidden>
               <span class="eyebrow">SELECTED</span>
               <h3 id="editor-selected-name">OBJECT</h3>
@@ -1951,6 +2024,22 @@
               </button>
               <div id="editor-interaction-link-list" class="editor-interaction-link-list"></div>
             </section>
+            <section id="editor-prefab-save-panel" class="editor-selection-panel" hidden>
+              <span class="eyebrow">REUSE THIS BUILD</span>
+              <h3>SAVE AS PREFAB</h3>
+              <div class="editor-transform-grid">
+                <label class="editor-transform-grid__wide" for="editor-prefab-name">
+                  <span>PREFAB NAME</span>
+                  <input id="editor-prefab-name" maxlength="80" placeholder="My Cool Build" />
+                </label>
+              </div>
+              <button id="editor-save-prefab-button" class="button button--quiet" type="button">
+                SAVE SELECTION
+              </button>
+              <p class="editor-phase-note">
+                Prefabs place editable copies. Removing a prefab never removes placed objects.
+              </p>
+            </section>
             <section class="editor-selection-panel editor-environment-panel">
               <span class="eyebrow">WORLD SETTINGS</span>
               <h3>LOOK &amp; FEEL</h3>
@@ -2131,8 +2220,8 @@
                 <label for="editor-finish-rule">
                   <span>FINISH</span>
                   <select id="editor-finish-rule">
-                    <option value="any">ANY VALID GATE</option>
-                    <option value="required-group">AFTER REQUIRED GROUPS</option>
+                    <option value="any">ANY TIME</option>
+                    <option value="required-group">AFTER CHECKPOINTS</option>
                   </select>
                 </label>
                 <label for="editor-race-recovery-delay">
