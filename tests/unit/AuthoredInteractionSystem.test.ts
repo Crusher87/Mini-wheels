@@ -122,6 +122,77 @@ describe("AuthoredInteractionSystem", () => {
     expect(system.debugSnapshot().counters[counter.id]).toBe(2);
   });
 
+  it("lets one link switch a button off and reports outside events", () => {
+    let nextId = 0;
+    const createId = () => `switch-${String(nextId++)}`;
+    const session = new EditorSession(createStarterMapDocument("Switches", createId), createId);
+    const placement = { elevation: 0, primarySize: 2, yawRadians: 0 };
+    const button = session.placeEntity("interaction.button", [0, 0, 0], placement);
+    const pad = session.placeEntity("travel.boost-pad", [10, 0, 0], placement);
+    const door = session.placeEntity("motion.door", [20, 0, 0], { ...placement, primarySize: 4 });
+    session.addInteractionLink({
+      sourceEntityId: pad.id,
+      event: "activated",
+      condition: null,
+      targetEntityId: button.id,
+      action: "disable",
+    });
+    session.addInteractionLink({
+      sourceEntityId: button.id,
+      event: "pressed",
+      condition: null,
+      targetEntityId: door.id,
+      action: "open",
+    });
+    const actions: string[] = [];
+    const system = new AuthoredInteractionSystem(
+      session.document.entities,
+      session.document.interactions,
+      { onAction: ({ interaction }) => actions.push(interaction.action) },
+    );
+
+    system.raise(pad.id, "activated");
+    system.fixedStep(0.02, []);
+    expect(actions).toEqual(["disable"]);
+    expect(system.isEnabled(button.id)).toBe(false);
+    system.fixedStep(0.02, [bodyAt(0, 0.5, 0)]);
+    expect(actions).toEqual(["disable"]);
+
+    system.reset();
+    expect(system.isEnabled(button.id)).toBe(true);
+    system.fixedStep(0.02, [bodyAt(0, 0.5, 0)]);
+    expect(actions).toEqual(["disable", "open"]);
+  });
+
+  it("keeps links between copied objects when duplicating", () => {
+    let nextId = 0;
+    const createId = () => `copy-${String(nextId++)}`;
+    const session = new EditorSession(createStarterMapDocument("Copies", createId), createId);
+    const placement = { elevation: 0, primarySize: 2, yawRadians: 0 };
+    const button = session.placeEntity("interaction.button", [0, 0, 0], placement);
+    const door = session.placeEntity("motion.door", [6, 0, 0], { ...placement, primarySize: 4 });
+    session.addInteractionLink({
+      sourceEntityId: button.id,
+      event: "pressed",
+      condition: null,
+      targetEntityId: door.id,
+      action: "open",
+    });
+    session.select(button.id);
+    session.select(door.id, true);
+
+    expect(session.duplicateSelected()).toBe(true);
+
+    const copies = session.selectedEntities;
+    expect(copies).toHaveLength(2);
+    const copiedLink = session.document.interactions.find(
+      (interaction) => interaction.sourceEntityId !== button.id,
+    );
+    expect(session.document.interactions).toHaveLength(2);
+    expect(copies.map((entity) => entity.id)).toContain(copiedLink?.sourceEntityId);
+    expect(copies.map((entity) => entity.id)).toContain(copiedLink?.targetEntityId);
+  });
+
   it("round-trips safe links and rejects incompatible imported actions", () => {
     let nextId = 0;
     const createId = () => `codec-link-${String(nextId++)}`;

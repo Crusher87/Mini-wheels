@@ -45,6 +45,8 @@ export interface BoosterPadDefinition {
   readonly velocityMultiplier?: number;
   readonly minimumVerticalSpeed?: number;
   readonly cooldownSeconds?: number;
+  /** Starts switched off when false; WHEN → DO links can switch it on. */
+  readonly enabled?: boolean;
 }
 
 export interface PortalEndpointDefinition {
@@ -56,6 +58,8 @@ export interface PortalEndpointDefinition {
    * Half-extents before rotation. Local +Z is the outward portal normal.
    */
   readonly halfExtents: Vector3Like;
+  /** Starts switched off when false; WHEN → DO links can switch it on. */
+  readonly enabled?: boolean;
 }
 
 export const BOOSTER_CONFIG = Object.freeze({

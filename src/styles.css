@@ -938,6 +938,34 @@ button.mode-card:not(:disabled):hover {
   min-width: 0;
 }
 
+.race-results {
+  display: grid;
+  gap: 6px;
+  margin: 4px 0 8px;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.race-results[hidden] {
+  display: none;
+}
+
+.race-results li {
+  display: flex;
+  gap: 16px;
+  align-items: baseline;
+  padding: 8px 12px;
+  border-left: 4px solid var(--orange);
+  background: rgb(255 255 255 / 45%);
+  font-variant-numeric: tabular-nums;
+}
+
+.race-results strong {
+  min-width: 3ch;
+  font-size: 1.25rem;
+}
+
 .toast {
   position: absolute;
   right: 24px;

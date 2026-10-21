@@ -13,7 +13,11 @@ import type { RapierModule } from "../../physics/rapier-init";
 import { COLLISION_GROUPS } from "../../physics/CollisionGroups";
 import { PhysicsRenderBinding } from "../PhysicsRenderBinding";
 import {
+  TAU,
+  degreesToRadians,
   platformProgressAtTime,
+  positiveModulo,
+  rotatingBarDegreesPerSecond,
   rotatingBarYawAtTime,
   writePlatformPositionAtTime,
   type MutableVector3,
@@ -75,7 +79,14 @@ interface RotatingBarRuntime {
   readonly mesh: Mesh;
   readonly binding: PhysicsRenderBinding;
   readonly nextRotation: MutableRotation;
+  /** False until a WHEN → DO link first commands this bar; until then it follows absolute time. */
+  controlled: boolean;
+  running: boolean;
+  direction: 1 | -1;
+  controlYawRadians: number;
 }
+
+type PlatformControlMode = "automatic" | "opening" | "closing" | "stopped";
 
 interface MovingPlatformRuntime {
   readonly source: MovingPlatformSource;
@@ -85,7 +96,11 @@ interface MovingPlatformRuntime {
   readonly nextPosition: MutableVector3;
   phase: PlatformMotionPhase;
   controlTimeSeconds: number;
-  controlMode: "automatic" | "opening" | "closing" | "stopped";
+  controlMode: PlatformControlMode;
+  /** Automatic cycle time is simulation time minus this, so a resumed cycle continues in place. */
+  automaticOffsetSeconds: number;
+  /** Mode to restore when a disabled mover is enabled again. */
+  pausedMode: PlatformControlMode | null;
 }
 
 /**
@@ -168,17 +183,34 @@ export class KinematicMoverSystem {
       throw new Error("afterPhysicsStep() must follow each beforePhysicsStep() call.");
     }
 
+    const deltaSeconds = Math.max(0, nextSimulationTimeSeconds - this.currentSimulationTimeSeconds);
     for (const bar of this.rotatingBars) {
       bar.binding.beginFixedStep();
-      const yaw = rotatingBarYawAtTime(bar.source, nextSimulationTimeSeconds, this.barSpeedProfile);
+      let yaw: number;
+      if (!bar.controlled) {
+        yaw = rotatingBarYawAtTime(bar.source, nextSimulationTimeSeconds, this.barSpeedProfile);
+      } else {
+        if (bar.running) {
+          bar.controlYawRadians = positiveModulo(
+            bar.controlYawRadians +
+              bar.direction *
+                degreesToRadians(rotatingBarDegreesPerSecond(bar.source, this.barSpeedProfile)) *
+                deltaSeconds,
+            TAU,
+          );
+        }
+        yaw = bar.controlYawRadians;
+      }
       writeYawQuaternion(yaw, bar.nextRotation);
       bar.body.setNextKinematicRotation(bar.nextRotation);
     }
 
-    const deltaSeconds = Math.max(0, nextSimulationTimeSeconds - this.currentSimulationTimeSeconds);
     for (const platform of this.movingPlatforms) {
       platform.binding.beginFixedStep();
-      let motionTimeSeconds = nextSimulationTimeSeconds;
+      let motionTimeSeconds = Math.max(
+        0,
+        nextSimulationTimeSeconds - platform.automaticOffsetSeconds,
+      );
       if (platform.controlMode !== "automatic") {
         if (platform.controlMode === "opening") {
           platform.controlTimeSeconds = Math.min(
@@ -247,6 +279,10 @@ export class KinematicMoverSystem {
 
     for (const bar of this.rotatingBars) {
       const yaw = rotatingBarYawAtTime(bar.source, simulationTimeSeconds, this.barSpeedProfile);
+      bar.controlled = false;
+      bar.running = true;
+      bar.direction = 1;
+      bar.controlYawRadians = yaw;
       writeYawQuaternion(yaw, bar.nextRotation);
       bar.body.setRotation(bar.nextRotation, false);
       bar.body.setNextKinematicRotation(bar.nextRotation);
@@ -257,6 +293,8 @@ export class KinematicMoverSystem {
 
     for (const platform of this.movingPlatforms) {
       platform.controlTimeSeconds = 0;
+      platform.automaticOffsetSeconds = 0;
+      platform.pausedMode = null;
       platform.controlMode = platform.source.initiallyStopped === true ? "stopped" : "automatic";
       platform.phase = writePlatformPositionAtTime(
         platform.source,
@@ -277,43 +315,122 @@ export class KinematicMoverSystem {
 
   public commandMovingPlatform(
     id: string,
-    action: "open" | "close" | "toggle" | "start" | "stop" | "reverse" | "reset",
+    action:
+      "open" | "close" | "toggle" | "start" | "stop" | "reverse" | "reset" | "enable" | "disable",
   ): boolean {
     this.assertUsable();
     const platform = this.movingPlatforms.find((candidate) => candidate.source.id === id);
     if (platform === undefined) {
       return false;
     }
-    if (action !== "reset" && platform.controlMode === "automatic") {
-      // Manual modes measure progress from A to B, so continue from where the cycle is now.
-      platform.controlTimeSeconds = platformProgressAtTime(
-        platform.source,
-        this.currentSimulationTimeSeconds,
-      );
+    if (action === "enable") {
+      // Re-enabling resumes whatever the mover was doing when it was disabled.
+      const resumeMode = platform.pausedMode;
+      platform.pausedMode = null;
+      if (resumeMode !== null && platform.controlMode === "stopped") {
+        this.setPlatformMode(platform, resumeMode);
+      }
+      return true;
     }
+    if (action === "disable") {
+      if (platform.pausedMode === null) {
+        platform.pausedMode = platform.controlMode;
+      }
+      this.setPlatformMode(platform, "stopped");
+      return true;
+    }
+    platform.pausedMode = null;
     if (action === "reset") {
       platform.controlTimeSeconds = 0;
+      platform.automaticOffsetSeconds = 0;
       platform.controlMode = platform.source.initiallyStopped === true ? "stopped" : "automatic";
     } else if (action === "stop") {
-      platform.controlMode = "stopped";
+      this.setPlatformMode(platform, "stopped");
     } else if (action === "open" || action === "start") {
-      platform.controlMode = platform.source.initiallyStopped === true ? "opening" : "automatic";
+      this.setPlatformMode(
+        platform,
+        platform.source.initiallyStopped === true ? "opening" : "automatic",
+      );
     } else if (action === "close") {
-      platform.controlMode = "closing";
+      this.setPlatformMode(platform, "closing");
     } else if (action === "toggle") {
-      platform.controlMode =
-        platform.controlTimeSeconds >= platform.source.authoredOneWayTravelSeconds / 2
+      this.setPlatformMode(
+        platform,
+        this.platformProgress(platform) >= platform.source.authoredOneWayTravelSeconds / 2
           ? "closing"
-          : "opening";
+          : "opening",
+      );
     } else {
-      platform.controlMode =
-        platform.controlMode === "opening"
-          ? "closing"
-          : platform.controlMode === "closing"
+      const heading =
+        platform.controlMode === "automatic"
+          ? platform.phase === "travel-a-to-b" || platform.phase === "hold-at-b"
             ? "opening"
-            : "closing";
+            : "closing"
+          : platform.controlMode;
+      this.setPlatformMode(platform, heading === "opening" ? "closing" : "opening");
     }
     return true;
+  }
+
+  /**
+   * Starts, stops or reverses a rotating bar from a WHEN → DO link. Commanded
+   * bars continue from their current angle instead of snapping.
+   */
+  public commandRotatingBar(
+    id: string,
+    action: "start" | "stop" | "reverse" | "reset" | "enable" | "disable",
+  ): boolean {
+    this.assertUsable();
+    const bar = this.rotatingBars.find((candidate) => candidate.source.id === id);
+    if (bar === undefined) {
+      return false;
+    }
+    if (!bar.controlled) {
+      bar.controlled = true;
+      bar.running = true;
+      bar.direction = 1;
+      bar.controlYawRadians = rotatingBarYawAtTime(
+        bar.source,
+        this.currentSimulationTimeSeconds,
+        this.barSpeedProfile,
+      );
+    }
+    if (action === "start" || action === "enable") {
+      bar.running = true;
+    } else if (action === "stop" || action === "disable") {
+      bar.running = false;
+    } else if (action === "reverse") {
+      bar.direction = bar.direction === 1 ? -1 : 1;
+    } else {
+      bar.running = true;
+      bar.direction = 1;
+    }
+    return true;
+  }
+
+  /** Current one-way progress from A toward B, in seconds of travel. */
+  private platformProgress(platform: MovingPlatformRuntime): number {
+    return platform.controlMode === "automatic"
+      ? platformProgressAtTime(
+          platform.source,
+          Math.max(0, this.currentSimulationTimeSeconds - platform.automaticOffsetSeconds),
+        )
+      : platform.controlTimeSeconds;
+  }
+
+  /** Changes mode while keeping the platform exactly where it is. */
+  private setPlatformMode(platform: MovingPlatformRuntime, mode: PlatformControlMode): void {
+    if (platform.controlMode === mode) {
+      return;
+    }
+    const progress = this.platformProgress(platform);
+    if (mode === "automatic") {
+      // On the A→B leg, cycle time equals progress, so resume the cycle from here.
+      platform.automaticOffsetSeconds = this.currentSimulationTimeSeconds - progress;
+    } else {
+      platform.controlTimeSeconds = progress;
+    }
+    platform.controlMode = mode;
   }
 
   public debugSnapshot(): KinematicMoverDebugSnapshot {
@@ -405,6 +522,10 @@ export class KinematicMoverSystem {
       mesh,
       binding: new PhysicsRenderBinding(body, mesh),
       nextRotation,
+      controlled: false,
+      running: true,
+      direction: 1,
+      controlYawRadians: yaw,
     };
   }
 
@@ -442,6 +563,8 @@ export class KinematicMoverSystem {
       phase,
       controlTimeSeconds: 0,
       controlMode: source.initiallyStopped === true ? "stopped" : "automatic",
+      automaticOffsetSeconds: 0,
+      pausedMode: null,
     };
   }
 

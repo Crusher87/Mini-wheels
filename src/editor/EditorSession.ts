@@ -11,6 +11,7 @@ import {
   type JsonValue,
   type InteractionAction,
   type InteractionCondition,
+  type InteractionDefinition,
   type InteractionEvent,
   type QuaternionTuple,
   type TrackDefinition,
@@ -469,7 +470,11 @@ export class EditorSession {
         finishRule: "any",
         recovery: Object.freeze({ delaySeconds: 0.75, penaltySeconds: 0 }),
       }),
-      interactions: Object.freeze([]),
+      interactions: copiedInteractions(
+        this.documentValue.interactions,
+        selectedIdMap,
+        (interaction) => interaction.id,
+      ),
       editorHints: Object.freeze({ thumbnailCamera: null }),
     });
   }
@@ -504,9 +509,10 @@ export class EditorSession {
         properties: copiedEntityProperties(entity, copiedIdBySourceId),
       });
     });
+    const links = copiedInteractions(prefab.interactions, copiedIdBySourceId, this.createId);
     this.execute(
       `Place ${prefab.header.title}`,
-      (document) => copies.reduce(addEntity, document),
+      (document) => withAddedInteractions(copies.reduce(addEntity, document), links),
       copies.map((entity) => entity.id),
     );
     return true;
@@ -1643,9 +1649,14 @@ export class EditorSession {
         properties: copiedEntityProperties(entity, copiedIdBySourceId),
       }),
     );
+    const links = copiedInteractions(
+      this.documentValue.interactions,
+      copiedIdBySourceId,
+      this.createId,
+    );
     this.execute(
       duplicates.length === 1 ? "Duplicate object" : "Duplicate objects",
-      (document) => duplicates.reduce(addEntity, document),
+      (document) => withAddedInteractions(duplicates.reduce(addEntity, document), links),
       duplicates.map((entity) => entity.id),
     );
     return true;
@@ -1675,9 +1686,14 @@ export class EditorSession {
         properties: copiedEntityProperties(entity, copiedIdBySourceId),
       }),
     );
+    const links = copiedInteractions(
+      this.documentValue.interactions,
+      copiedIdBySourceId,
+      this.createId,
+    );
     this.execute(
       copies.length === 1 ? "Paste object" : "Paste objects",
-      (document) => copies.reduce(addEntity, document),
+      (document) => withAddedInteractions(copies.reduce(addEntity, document), links),
       copies.map((entity) => entity.id),
     );
     return true;
@@ -2498,6 +2514,45 @@ function createEntity(
     groupId: null,
     properties: createEditorAssetProperties(assetId, primary, secondary),
   });
+}
+
+/**
+ * Copies the WHEN → DO links whose source and target were both copied, pointing
+ * them at the copies. Links to objects outside the copied set are left behind.
+ */
+function copiedInteractions(
+  interactions: readonly InteractionDefinition[],
+  copiedIdBySourceId: ReadonlyMap<string, string>,
+  createId: (interaction: InteractionDefinition) => string,
+): readonly InteractionDefinition[] {
+  return Object.freeze(
+    interactions.flatMap((interaction) => {
+      const sourceEntityId = copiedIdBySourceId.get(interaction.sourceEntityId);
+      const targetEntityId = copiedIdBySourceId.get(interaction.targetEntityId);
+      return sourceEntityId === undefined || targetEntityId === undefined
+        ? []
+        : [
+            Object.freeze({
+              ...interaction,
+              id: createId(interaction),
+              sourceEntityId,
+              targetEntityId,
+            }),
+          ];
+    }),
+  );
+}
+
+function withAddedInteractions(
+  document: MapDocument,
+  interactions: readonly InteractionDefinition[],
+): MapDocument {
+  return interactions.length === 0
+    ? document
+    : Object.freeze({
+        ...document,
+        interactions: Object.freeze([...document.interactions, ...interactions]),
+      });
 }
 
 function addEntity(document: MapDocument, entity: MapEntity): MapDocument {

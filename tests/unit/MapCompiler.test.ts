@@ -17,6 +17,25 @@ describe("MapCompiler", () => {
     expect(Object.isFrozen(blueprint)).toBe(true);
   });
 
+  it("warns, without blocking, when a map has very many physics toys", () => {
+    let index = 0;
+    const createId = () => `heavy-${String(++index)}`;
+    const session = new EditorSession(createStarterMapDocument("Heavy", createId), createId);
+    for (let count = 0; count < 121; count += 1) {
+      session.placeEntity("physics.ball", [count % 20, 0, Math.floor(count / 20)], {
+        elevation: 0,
+        primarySize: 0.5,
+        yawRadians: 0,
+      });
+    }
+    const blueprint = compileMapDocument(session.document);
+
+    expect(blueprint.freeDriveReady).toBe(true);
+    expect(blueprint.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      "performance.many-physics-toys",
+    );
+  });
+
   it("keeps authored spline source data in the immutable runtime blueprint", () => {
     let index = 0;
     const createId = () => `track-compile-${String(++index)}`;

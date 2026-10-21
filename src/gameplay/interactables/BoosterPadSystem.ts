@@ -165,6 +165,8 @@ interface BoosterPadRuntime {
   readonly definition: BoosterPadDefinition;
   readonly collider: Collider;
   readonly contactState: BoosterContactState;
+  readonly arrow: Mesh;
+  enabled: boolean;
 }
 
 export interface BoosterPadDebugSnapshot {
@@ -274,6 +276,9 @@ export class BoosterPadSystem {
     }
     for (const pad of this.pads) {
       const readyBodyHandles = pad.contactState.fixedStep(deltaSeconds);
+      if (!pad.enabled) {
+        continue;
+      }
       const activatedBodies: RigidBodyHandle[] = [];
       const activationSnapshots: BoosterBodyActivationDebugSnapshot[] = [];
       for (const bodyHandle of readyBodyHandles) {
@@ -331,6 +336,30 @@ export class BoosterPadSystem {
       pad.contactState.clear();
     }
     this.pendingParticleRequestCount = 0;
+  }
+
+  /**
+   * Switches a pad on or off for WHEN → DO links. A switched-off pad hides its
+   * arrow and ignores cars. Returns false for an unknown pad.
+   */
+  public setPadEnabled(id: BoosterPadId, enabled: boolean): boolean {
+    const pad = this.pads.find((candidate) => candidate.definition.id === id);
+    if (pad === undefined) {
+      return false;
+    }
+    pad.enabled = enabled;
+    pad.arrow.visible = enabled;
+    return true;
+  }
+
+  /** Restores a pad's authored on/off state. */
+  public resetPad(id: BoosterPadId): boolean {
+    const pad = this.pads.find((candidate) => candidate.definition.id === id);
+    return pad !== undefined && this.setPadEnabled(id, pad.definition.enabled !== false);
+  }
+
+  public isPadEnabled(id: BoosterPadId): boolean | null {
+    return this.pads.find((candidate) => candidate.definition.id === id)?.enabled ?? null;
   }
 
   public consumeParticleRequestCount(): number {
@@ -501,7 +530,10 @@ export class BoosterPadSystem {
         definition,
         collider,
         contactState: new BoosterContactState(definition.cooldownSeconds ?? cooldownSeconds),
+        arrow,
+        enabled: definition.enabled !== false,
       };
+      arrow.visible = runtime.enabled;
       this.pads.push(runtime);
       this.padBySensorCollider.set(collider.handle, runtime);
     }

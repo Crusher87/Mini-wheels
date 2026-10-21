@@ -96,14 +96,21 @@
               <small>1–10 PLAYERS · PHYSICS TOYBOX</small>
               <b>READY →</b>
             </button>
-            <button id="mode-infected" class="mode-card mode-card--disabled" type="button" disabled>
+            <button id="play-my-maps-button" class="mode-card mode-card--active" type="button">
               <span class="mode-card__index">02</span>
+              <span class="mode-card__art" aria-hidden="true"><i></i><i></i><i></i></span>
+              <strong>MY MAPS</strong>
+              <small>1–10 PLAYERS · RACE YOUR CREATIONS</small>
+              <b>PICK A MAP →</b>
+            </button>
+            <button id="mode-infected" class="mode-card mode-card--disabled" type="button" disabled>
+              <span class="mode-card__index">03</span>
               <strong>INFECTED</strong>
               <small>1–10 PLAYERS</small>
               <b>COMING SOON</b>
             </button>
             <button id="mode-iceage" class="mode-card mode-card--disabled" type="button" disabled>
-              <span class="mode-card__index">03</span>
+              <span class="mode-card__index">04</span>
               <strong>ICE AGE</strong>
               <small>MAP TEST · UNSHIPPED</small>
               <b>UNAVAILABLE</b>
@@ -114,7 +121,7 @@
               type="button"
               disabled
             >
-              <span class="mode-card__index">04</span>
+              <span class="mode-card__index">05</span>
               <strong>ICE DIAMONDS</strong>
               <small>MAP TEST · UNSHIPPED</small>
               <b>UNAVAILABLE</b>
@@ -125,7 +132,7 @@
               type="button"
               disabled
             >
-              <span class="mode-card__index">05</span>
+              <span class="mode-card__index">06</span>
               <strong>STONE HEDGE</strong>
               <small>MAP TEST · UNSHIPPED</small>
               <b>UNAVAILABLE</b>
@@ -2196,6 +2203,7 @@
           <div class="pause-card" role="dialog" aria-modal="true" aria-labelledby="pause-heading">
             <span class="eyebrow">SIMULATION HALTED</span>
             <h2 id="pause-heading">PAUSED</h2>
+            <ol id="race-results" class="race-results" aria-label="Race results" hidden></ol>
             <button id="resume-button" class="button button--primary" type="button">RESUME</button>
             <button id="reset-button" class="button" type="button">RESET SANDBOX</button>
             <button id="return-menu-button" class="button button--quiet" type="button">

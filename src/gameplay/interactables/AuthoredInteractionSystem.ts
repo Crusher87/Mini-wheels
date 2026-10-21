@@ -58,6 +58,10 @@ export class AuthoredInteractionSystem {
   private readonly zones: ZoneRuntime[] = [];
   private readonly timers: TimerRuntime[] = [];
   private readonly counters = new Map<string, number>();
+  /** Buttons, plates, zones, timers and counters currently switched off by a link. */
+  private readonly disabledIds = new Set<string>();
+  /** Events reported by other systems (pads, portals, lights) for the next step. */
+  private readonly externalEvents: PendingEvent[] = [];
   private activationCount = 0;
   private boundedActionCount = 0;
   private lastAction: AuthoredInteractionDebugSnapshot["lastAction"] = null;
@@ -92,16 +96,34 @@ export class AuthoredInteractionSystem {
       } else if (entity.assetId === "interaction.counter") {
         this.counters.set(entity.id, 0);
       }
+      if (isLogicObject(entity) && entity.properties["enabled"] === false) {
+        this.disabledIds.add(entity.id);
+      }
     }
+  }
+
+  /**
+   * Reports an event from outside this system, such as a car using a boost pad
+   * or a light being switched. It is handled on the next fixed step.
+   */
+  public raise(sourceEntityId: string, event: InteractionEvent): void {
+    if (this.linksBySource.has(sourceEntityId)) {
+      this.externalEvents.push({ sourceEntityId, event });
+    }
+  }
+
+  /** Whether a button, plate, zone, timer or counter is currently switched on. */
+  public isEnabled(entityId: string): boolean {
+    return !this.disabledIds.has(entityId);
   }
 
   public fixedStep(deltaSeconds: number, bodies: readonly RigidBody[]): void {
     if (!Number.isFinite(deltaSeconds) || deltaSeconds <= 0) {
       throw new RangeError("Interaction delta must be finite and positive.");
     }
-    const pending: PendingEvent[] = [];
+    const pending: PendingEvent[] = this.externalEvents.splice(0);
     for (const zone of this.zones) {
-      if (zone.entity.properties["enabled"] === false) {
+      if (this.disabledIds.has(zone.entity.id)) {
         continue;
       }
       const occupied = bodies.some((body) => this.contains(zone, body.translation()));
@@ -123,7 +145,7 @@ export class AuthoredInteractionSystem {
       }
     }
     for (const timer of this.timers) {
-      if (!timer.running || timer.entity.properties["enabled"] === false) {
+      if (!timer.running || this.disabledIds.has(timer.entity.id)) {
         continue;
       }
       timer.elapsedSeconds += deltaSeconds;
@@ -156,6 +178,13 @@ export class AuthoredInteractionSystem {
     for (const counterId of this.counters.keys()) {
       this.counters.set(counterId, 0);
     }
+    this.disabledIds.clear();
+    for (const entity of this.entityById.values()) {
+      if (isLogicObject(entity) && entity.properties["enabled"] === false) {
+        this.disabledIds.add(entity.id);
+      }
+    }
+    this.externalEvents.length = 0;
     this.activationCount = 0;
     this.boundedActionCount = 0;
     this.lastAction = null;
@@ -215,7 +244,28 @@ export class AuthoredInteractionSystem {
           targetEntityId: interaction.targetEntityId,
           action: interaction.action,
         });
-        if (target.assetId === "interaction.counter") {
+        if (isLogicObject(target)) {
+          if (interaction.action === "enable") {
+            this.disabledIds.delete(target.id);
+          } else if (interaction.action === "disable") {
+            this.disabledIds.add(target.id);
+            const zone = this.zones.find((candidate) => candidate.entity.id === target.id);
+            if (zone !== undefined) {
+              zone.occupied = false;
+            }
+          } else if (interaction.action === "reset") {
+            if (target.properties["enabled"] === false) {
+              this.disabledIds.add(target.id);
+            } else {
+              this.disabledIds.delete(target.id);
+            }
+            const zone = this.zones.find((candidate) => candidate.entity.id === target.id);
+            if (zone !== undefined) {
+              zone.occupied = false;
+            }
+          }
+        }
+        if (target.assetId === "interaction.counter" && !this.disabledIds.has(target.id)) {
           if (interaction.action === "increment") {
             const next = (this.counters.get(target.id) ?? 0) + 1;
             this.counters.set(target.id, next);
@@ -251,6 +301,17 @@ export class AuthoredInteractionSystem {
       this.boundedActionCount += queue.length;
     }
   }
+}
+
+/** Objects whose on/off state this system owns. */
+function isLogicObject(entity: MapEntity): boolean {
+  return (
+    entity.assetId === "interaction.button" ||
+    entity.assetId === "interaction.pressure-plate" ||
+    entity.assetId === "interaction.trigger-zone" ||
+    entity.assetId === "interaction.timer" ||
+    entity.assetId === "interaction.counter"
+  );
 }
 
 function numberProperty(entity: MapEntity, key: string, fallback: number): number {

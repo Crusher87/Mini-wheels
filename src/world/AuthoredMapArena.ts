@@ -29,7 +29,7 @@ import {
 } from "../editor/EditorAssetCatalog";
 import type { AuthoredSurfaceContact } from "../gameplay/vehicle/SurfaceContactSystem";
 import type { RuntimeMapBlueprint } from "../maps/MapCompiler";
-import type { MapEntity, TrackSurface } from "../maps/MapDocument";
+import type { InteractionAction, MapEntity, TrackSurface } from "../maps/MapDocument";
 import { COLLISION_GROUPS } from "../physics/CollisionGroups";
 import type { RapierModule } from "../physics/rapier-init";
 import { buildRuntimeTrack } from "../tracks/TrackRuntimeBuilder";
@@ -45,6 +45,37 @@ interface WallGuideSample {
   readonly z: number;
   readonly inwardX: number;
   readonly inwardZ: number;
+}
+
+const DECORATION_PULSE_SECONDS = 0.45;
+/** Rows of a start grid sit this many slot-spacings apart, leaving room for car length. */
+const START_GRID_ROW_SPACING_FACTOR = 1.6;
+
+/** Switchable state for a point light or color strip driven by WHEN → DO links. */
+interface DecorationRuntime {
+  readonly group: Group;
+  readonly glowMaterials: readonly {
+    readonly material: MeshStandardMaterial;
+    readonly onIntensity: number;
+  }[];
+  light: PointLight | null;
+  lightIntensity: number;
+  readonly initiallyEnabled: boolean;
+  enabled: boolean;
+  pulseRemainingSeconds: number;
+}
+
+function applyDecorationLighting(decoration: DecorationRuntime): void {
+  const pulsing = decoration.pulseRemainingSeconds > 0;
+  const lit = decoration.enabled || pulsing;
+  const boost = pulsing ? 1.8 : 1;
+  for (const { material, onIntensity } of decoration.glowMaterials) {
+    material.emissiveIntensity = lit ? onIntensity * boost : 0;
+    material.opacity = lit ? 1 : 0.45;
+  }
+  if (decoration.light !== null) {
+    decoration.light.intensity = lit ? decoration.lightIntensity * boost : 0;
+  }
 }
 
 interface AuthoredDynamicRuntime {
@@ -73,6 +104,7 @@ export class AuthoredMapArena implements WorldArena {
   private readonly surfaceByColliderHandle = new Map<number, AuthoredSurfaceContact>();
   private readonly recoveryByColliderHandle = new Map<number, AuthoredRecoveryTarget>();
   private readonly raceTriggerByColliderHandle = new Map<number, AuthoredRaceTrigger>();
+  private readonly decorations = new Map<string, DecorationRuntime>();
   private colliderCount = 0;
   private guidanceVisualCount = 0;
   private guidanceColliderCount = 0;
@@ -192,7 +224,18 @@ export class AuthoredMapArena implements WorldArena {
     }
   }
 
-  public finishFixedStep(): readonly RigidBodyHandle[] {
+  public finishFixedStep(deltaSeconds = 0): readonly RigidBodyHandle[] {
+    for (const decoration of this.decorations.values()) {
+      if (decoration.pulseRemainingSeconds > 0) {
+        decoration.pulseRemainingSeconds = Math.max(
+          0,
+          decoration.pulseRemainingSeconds - deltaSeconds,
+        );
+        if (decoration.pulseRemainingSeconds === 0) {
+          applyDecorationLighting(decoration);
+        }
+      }
+    }
     const recoveredHandles: number[] = [];
     for (const runtime of this.dynamicRuntimes) {
       runtime.binding.captureAfterFixedStep();
@@ -653,6 +696,17 @@ export class AuthoredMapArena implements WorldArena {
     this.decorationVisualCount += 1;
     const color = colorProperty(entity, "color", "#35d5df");
     const enabled = entity.properties["enabled"] !== false;
+    const glowMaterials: { material: MeshStandardMaterial; onIntensity: number }[] = [];
+    const runtime: DecorationRuntime = {
+      group,
+      glowMaterials,
+      light: null,
+      lightIntensity: 0,
+      initiallyEnabled: enabled,
+      enabled,
+      pulseRemainingSeconds: 0,
+    };
+    this.decorations.set(entity.id, runtime);
     const addMesh = (
       geometry: BufferGeometry,
       material: MeshStandardMaterial,
@@ -667,15 +721,17 @@ export class AuthoredMapArena implements WorldArena {
     };
     if (entity.assetId === "decoration.color-strip") {
       const glow = numberProperty(entity, "glow", 0.8);
+      const stripMaterial = new MeshStandardMaterial({
+        color,
+        emissive: color,
+        emissiveIntensity: enabled ? glow : 0,
+        opacity: enabled ? 1 : 0.45,
+        transparent: true,
+      });
+      glowMaterials.push({ material: stripMaterial, onIntensity: glow });
       addMesh(
         new BoxGeometry(dimensions.width, dimensions.height, dimensions.depth),
-        new MeshStandardMaterial({
-          color,
-          emissive: color,
-          emissiveIntensity: enabled ? glow : 0,
-          opacity: enabled ? 1 : 0.45,
-          transparent: !enabled,
-        }),
+        stripMaterial,
         [0, 0, 0],
       );
       return;
@@ -689,21 +745,70 @@ export class AuthoredMapArena implements WorldArena {
       [0, -dimensions.height / 2 + postHeight / 2, 0],
     );
     const intensity = numberProperty(entity, "intensity", 4);
-    addMesh(
-      new SphereGeometry(bulbSize / 2, 20, 14),
-      new MeshStandardMaterial({
-        color,
-        emissive: color,
-        emissiveIntensity: enabled ? Math.min(2, 0.35 + intensity * 0.15) : 0,
-      }),
-      [0, bulbCenterY, 0],
+    const bulbGlow = Math.min(2, 0.35 + intensity * 0.15);
+    const bulbMaterial = new MeshStandardMaterial({
+      color,
+      emissive: color,
+      emissiveIntensity: enabled ? bulbGlow : 0,
+    });
+    glowMaterials.push({ material: bulbMaterial, onIntensity: bulbGlow });
+    addMesh(new SphereGeometry(bulbSize / 2, 20, 14), bulbMaterial, [0, bulbCenterY, 0]);
+    // A light that a WHEN → DO link can switch on needs its PointLight from the start,
+    // because adding lights mid-session forces every shader to recompile.
+    const switchable = this.blueprint.interactions.some(
+      (interaction) => interaction.targetEntityId === entity.id,
     );
-    if (enabled) {
-      const light = new PointLight(color, intensity, numberProperty(entity, "range", 14), 2);
+    if (enabled || switchable) {
+      const light = new PointLight(
+        color,
+        enabled ? intensity : 0,
+        numberProperty(entity, "range", 14),
+        2,
+      );
       light.position.y = bulbCenterY;
       group.add(light);
-      this.pointLightCount += 1;
+      runtime.light = light;
+      runtime.lightIntensity = intensity;
+      if (enabled) {
+        this.pointLightCount += 1;
+      }
     }
+  }
+
+  /**
+   * Applies a WHEN → DO action to a point light or color strip. Returns false
+   * when the entity is not a runtime decoration.
+   */
+  public applyDecorationAction(entityId: string, action: InteractionAction): boolean {
+    const decoration = this.decorations.get(entityId);
+    if (decoration === undefined) {
+      return false;
+    }
+    if (action === "enable") {
+      decoration.enabled = true;
+    } else if (action === "disable") {
+      decoration.enabled = false;
+    } else if (action === "show") {
+      decoration.group.visible = true;
+    } else if (action === "hide") {
+      decoration.group.visible = false;
+    } else if (action === "pulse") {
+      decoration.pulseRemainingSeconds = DECORATION_PULSE_SECONDS;
+    } else if (action === "reset") {
+      decoration.enabled = decoration.initiallyEnabled;
+      decoration.group.visible = true;
+      decoration.pulseRemainingSeconds = 0;
+    } else {
+      return false;
+    }
+    applyDecorationLighting(decoration);
+    return true;
+  }
+
+  /** Whether a decoration is currently switched on and visible. */
+  public decorationLit(entityId: string): boolean | null {
+    const decoration = this.decorations.get(entityId);
+    return decoration === undefined ? null : decoration.enabled && decoration.group.visible;
   }
 
   private createStaticTunnel(entity: MapEntity): void {
@@ -1065,18 +1170,26 @@ export function authoredSpawnTransform(
     throw new Error("Test Mode requires an authored start grid.");
   }
   const spacing = numberProperty(start, "spacing", 2.5);
-  const centeredOffset = (playerIndex - (playerCount - 1) / 2) * spacing;
+  // P1 takes the first slot of the front row; later rows line up behind it
+  // (cars face local +Z), so ten cars stay a compact, fair grid.
+  const columns = Math.min(
+    Math.max(1, Math.trunc(numberProperty(start, "columns", 2))),
+    Math.max(1, playerCount),
+  );
+  const row = Math.floor(playerIndex / columns);
+  const column = playerIndex % columns;
+  const carsInRow = Math.min(columns, playerCount - row * columns);
   const quaternion = new Quaternion().fromArray(start.transform.rotation);
-  const localOffset = { x: centeredOffset, y: 0, z: 0 };
-  const rotatedX =
-    localOffset.x * (1 - 2 * quaternion.y * quaternion.y - 2 * quaternion.z * quaternion.z);
-  const rotatedZ =
-    localOffset.x * (2 * quaternion.x * quaternion.z - 2 * quaternion.w * quaternion.y);
+  const offset = new Vector3(
+    (column - (carsInRow - 1) / 2) * spacing,
+    0,
+    -row * spacing * START_GRID_ROW_SPACING_FACTOR,
+  ).applyQuaternion(quaternion);
   return Object.freeze({
     position: Object.freeze({
-      x: start.transform.position[0] + rotatedX,
+      x: start.transform.position[0] + offset.x,
       y: start.transform.position[1] + 1,
-      z: start.transform.position[2] + rotatedZ,
+      z: start.transform.position[2] + offset.z,
     }),
     quaternion: Object.freeze({
       x: quaternion.x,

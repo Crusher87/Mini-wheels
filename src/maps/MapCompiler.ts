@@ -1,6 +1,13 @@
 import { canonicalMapDocument } from "./MapCodec";
 import type { MapDocument, MapEntity, MapType } from "./MapDocument";
 
+/** Above these, a map still loads but may run slowly on modest computers. */
+export const HEAVY_MAP_LIMITS = Object.freeze({
+  objects: 500,
+  physicsToys: 120,
+  trackPoints: 400,
+});
+
 export interface MapDiagnostic {
   readonly level: "warning" | "blocking";
   readonly code: string;
@@ -144,6 +151,41 @@ export function compileMapDocument(document: MapDocument): RuntimeMapBlueprint {
         level: "warning",
         code: "decoration.many-point-lights",
         message: `${String(enabledPointLightCount)} lights are on. The map is allowed, but some computers may run more slowly.`,
+        entityId: null,
+      }),
+    );
+  }
+
+  const physicsToyCount = canonical.entities.filter((entity) =>
+    entity.assetId.startsWith("physics."),
+  ).length;
+  if (physicsToyCount > HEAVY_MAP_LIMITS.physicsToys) {
+    diagnostics.push(
+      Object.freeze({
+        level: "warning",
+        code: "performance.many-physics-toys",
+        message: `${String(physicsToyCount)} balls, cubes and dominoes are on this map. Some computers may slow down; try fewer.`,
+        entityId: null,
+      }),
+    );
+  }
+  if (canonical.entities.length > HEAVY_MAP_LIMITS.objects) {
+    diagnostics.push(
+      Object.freeze({
+        level: "warning",
+        code: "performance.many-objects",
+        message: `${String(canonical.entities.length)} objects are on this map. Some computers may slow down.`,
+        entityId: null,
+      }),
+    );
+  }
+  const trackPointCount = canonical.tracks.reduce((total, track) => total + track.nodes.length, 0);
+  if (trackPointCount > HEAVY_MAP_LIMITS.trackPoints) {
+    diagnostics.push(
+      Object.freeze({
+        level: "warning",
+        code: "performance.long-tracks",
+        message: `The roads have ${String(trackPointCount)} points. Smooth Curves can simplify them if driving feels slow.`,
         entityId: null,
       }),
     );

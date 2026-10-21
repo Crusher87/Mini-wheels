@@ -3,6 +3,7 @@ import type { OrthographicCamera, Scene } from "three";
 import type { RapierModule } from "../physics/rapier-init";
 import type { AuthoredWallContact } from "../physics/VehiclePhysicsAdapter";
 import type { RuntimeMapBlueprint } from "../maps/MapCompiler";
+import type { InteractionAction, MapEntity } from "../maps/MapDocument";
 import { SIMULATION_CONFIG } from "../config/runtime-defaults";
 import { VEHICLE_RUNTIME } from "../config/vehicle-runtime";
 import type { MovingPlatformSource, RotatingBarSource } from "../config/sandbox-movers";
@@ -195,6 +196,7 @@ export function authoredBoosterDefinitions(
           ? { minimumVerticalSpeed: entityNumber(entity, "bounceSpeed", 9) }
           : {}),
         cooldownSeconds: entityNumber(entity, "cooldownSeconds", 0.35),
+        enabled: entity.properties["enabled"] !== false,
       }),
     );
   }
@@ -233,6 +235,7 @@ export function authoredPortalDefinitions(
           y: (entityNumber(entity, "height", 4) * Math.abs(entity.transform.scale[1])) / 2,
           z: (entityNumber(entity, "depth", 0.35) * Math.abs(entity.transform.scale[2])) / 2,
         }),
+        enabled: entity.properties["enabled"] !== false,
       }),
     );
   }
@@ -246,6 +249,11 @@ function entityNumber(
 ) {
   const value = entity.properties[key];
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function entityPosition(entity: MapEntity): { x: number; y: number; z: number } {
+  const [x, y, z] = entity.transform.position;
+  return { x, y, z };
 }
 
 export interface CameraDebugSnapshot {
@@ -407,6 +415,7 @@ export class WorldSession {
       blueprint === undefined ? undefined : authoredBoosterDefinitions(blueprint),
       {
         onActivation: (request) => {
+          this.authoredInteractions.raise(String(request.padId), "activated");
           if (request.particleCount > 0) {
             this.particles.emitBoosterBurst(request.position, request.particleCount);
             presentationSettings.onBoosterActivation?.();
@@ -433,6 +442,7 @@ export class WorldSession {
           }
         },
         onTeleport: (event) => {
+          this.authoredInteractions.raise(String(event.sourceEndpointId), "activated");
           this.particles.emitPortalBurst(event.sourcePosition);
           this.particles.emitPortalBurst(event.destinationPosition);
           presentationSettings.onPortalTeleport?.();
@@ -456,33 +466,7 @@ export class WorldSession {
           return race.players.some((player) => player.lap >= minimumLap);
         },
         onAction: ({ interaction, target }) => {
-          if (
-            (target.assetId === "motion.door" || target.assetId === "motion.moving-platform") &&
-            (interaction.action === "open" ||
-              interaction.action === "close" ||
-              interaction.action === "toggle" ||
-              interaction.action === "start" ||
-              interaction.action === "stop" ||
-              interaction.action === "reverse" ||
-              interaction.action === "reset")
-          ) {
-            this.movers.commandMovingPlatform(target.id, interaction.action);
-          }
-          if (
-            target.assetId === "decoration.effect-emitter" &&
-            (interaction.action === "play" ||
-              interaction.action === "pulse" ||
-              interaction.action === "enable")
-          ) {
-            this.particles.emitBoosterBurst(
-              {
-                x: target.transform.position[0],
-                y: target.transform.position[1],
-                z: target.transform.position[2],
-              },
-              entityNumber(target, "burstCount", 12),
-            );
-          }
+          this.applyAuthoredAction(target, interaction.action);
         },
       },
     );
@@ -574,7 +558,9 @@ export class WorldSession {
       });
       this.boosters.fixedStep(SIMULATION_CONFIG.fixedTimestepSeconds);
       this.movers.afterPhysicsStep();
-      const recoveredArenaBodies = this.arena.finishFixedStep();
+      const recoveredArenaBodies = this.arena.finishFixedStep(
+        SIMULATION_CONFIG.fixedTimestepSeconds,
+      );
       for (const bodyHandle of recoveredArenaBodies) {
         this.forgetInteractionBody(bodyHandle);
       }
@@ -681,6 +667,11 @@ export class WorldSession {
       throttles[index] = this.latestThrottle[index] ?? 0;
     }
     return count;
+  }
+
+  /** Current race phase, laps, finish order and times. */
+  public raceSnapshot(): RaceProgressSnapshot {
+    return this.raceProgress.snapshot();
   }
 
   public debugSnapshot(): WorldDebugSnapshot {
@@ -932,6 +923,92 @@ export class WorldSession {
     );
     this.raceHud.replaceChildren(...children);
     this.raceHud.hidden = false;
+  }
+
+  /** Carries out one WHEN → DO action on its target object. */
+  private applyAuthoredAction(target: MapEntity, action: InteractionAction): void {
+    switch (target.assetId) {
+      case "motion.door":
+      case "motion.moving-platform":
+        if (
+          action === "open" ||
+          action === "close" ||
+          action === "toggle" ||
+          action === "start" ||
+          action === "stop" ||
+          action === "reverse" ||
+          action === "reset" ||
+          action === "enable" ||
+          action === "disable"
+        ) {
+          this.movers.commandMovingPlatform(target.id, action);
+        }
+        return;
+      case "motion.rotating-bar":
+        if (
+          action === "start" ||
+          action === "stop" ||
+          action === "reverse" ||
+          action === "reset" ||
+          action === "enable" ||
+          action === "disable"
+        ) {
+          this.movers.commandRotatingBar(target.id, action);
+        }
+        return;
+      case "travel.boost-pad":
+      case "travel.launch-pad":
+      case "travel.bounce-pad":
+      case "travel.slow-zone": {
+        const padId = boosterPadId(target.id);
+        if (action === "enable" || action === "disable") {
+          this.boosters.setPadEnabled(padId, action === "enable");
+        } else if (action === "reset") {
+          this.boosters.resetPad(padId);
+        } else if (action === "pulse") {
+          this.particles.emitBoosterBurst(entityPosition(target), 10);
+        }
+        return;
+      }
+      case "travel.portal": {
+        const endpointId = portalEndpointId(target.id);
+        if (action === "enable" || action === "disable") {
+          this.portals.setEndpointEnabled(endpointId, action === "enable");
+        } else if (action === "toggle") {
+          this.portals.setEndpointEnabled(
+            endpointId,
+            this.portals.isEndpointEnabled(endpointId) === false,
+          );
+        } else if (action === "reset") {
+          this.portals.resetEndpoint(endpointId);
+        }
+        return;
+      }
+      case "decoration.point-light":
+      case "decoration.color-strip": {
+        const wasLit = this.arena.decorationLit?.(target.id) ?? null;
+        if (this.arena.applyDecorationAction?.(target.id, action) === true) {
+          const nowLit = this.arena.decorationLit?.(target.id) ?? null;
+          if (wasLit !== null && nowLit !== null && wasLit !== nowLit) {
+            this.authoredInteractions.raise(target.id, nowLit ? "activated" : "deactivated");
+          }
+        }
+        return;
+      }
+      case "decoration.effect-emitter":
+        if (action === "play" || action === "pulse" || action === "enable") {
+          this.particles.emitBoosterBurst(
+            entityPosition(target),
+            entityNumber(target, "burstCount", 12),
+          );
+          this.authoredInteractions.raise(target.id, "activated");
+        } else if (action === "stop" || action === "disable") {
+          this.authoredInteractions.raise(target.id, "deactivated");
+        }
+        return;
+      default:
+        return;
+    }
   }
 
   private handleAuthoredRaceCollision(

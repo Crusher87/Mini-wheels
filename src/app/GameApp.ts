@@ -349,6 +349,8 @@ export class GameApp {
   private uninstallTestApi: (() => void) | undefined;
   private previousNow = performance.now();
   private sessionGeneration = 0;
+  /** Session generation whose race results have already been shown. */
+  private raceResultsGeneration = -1;
   private disposed = false;
   private memoryStorageWarningShown = false;
   private storagePersistenceChecked = false;
@@ -1393,6 +1395,9 @@ export class GameApp {
     if (document.hidden && this.state === AppState.Playing) {
       this.pause("Paused because the tab was hidden.");
     }
+    if (document.hidden) {
+      this.flushEditorAutosave();
+    }
     void this.audio.setPageHidden(document.hidden);
     if (!document.hidden && this.state !== AppState.Paused) {
       void this.audio.resume();
@@ -2220,6 +2225,7 @@ export class GameApp {
       this.returnToMenu();
       return;
     }
+    this.ui.clearRaceResults();
     this.input.setGameplayEnabled(false);
     this.audio.stopAllEngineVoices();
     this.audio.setGameplayPaused(true);
@@ -3744,11 +3750,25 @@ export class GameApp {
   private scheduleEditorAutosave(): void {
     window.clearTimeout(this.editorAutosaveTimeout);
     this.editorAutosaveTimeout = window.setTimeout(() => {
+      this.editorAutosaveTimeout = undefined;
       const title = document.getElementById("editor-map-name");
       if (title instanceof HTMLInputElement) {
         void this.saveEditorMap(title.value);
       }
     }, 700);
+  }
+
+  /** Saves a pending autosave right away, for when the page is being hidden or closed. */
+  private flushEditorAutosave(): void {
+    if (this.editorAutosaveTimeout === undefined || this.state !== AppState.Editing) {
+      return;
+    }
+    window.clearTimeout(this.editorAutosaveTimeout);
+    this.editorAutosaveTimeout = undefined;
+    const title = document.getElementById("editor-map-name");
+    if (title instanceof HTMLInputElement) {
+      void this.saveEditorMap(title.value);
+    }
   }
 
   private persistEditorRecoveryEntry(document: MapDocument): void {
@@ -4120,6 +4140,7 @@ export class GameApp {
     if (this.state !== AppState.Paused) {
       return;
     }
+    this.ui.clearRaceResults();
     this.input.clear();
     this.input.setGameplayEnabled(true);
     this.fixedStep.reset();
@@ -4132,6 +4153,32 @@ export class GameApp {
     }
     document.getElementById("game-root")?.focus();
     void this.audio.resume();
+  }
+
+  /** Pauses on the results card once every player has finished a scored race. */
+  private showRaceResults(): void {
+    const race = this.worldSession?.raceSnapshot();
+    if (race === undefined || this.state !== AppState.Playing) {
+      return;
+    }
+    this.raceResultsGeneration = this.sessionGeneration;
+    this.state = AppState.Paused;
+    this.input.setGameplayEnabled(false);
+    this.fixedStep.reset();
+    this.audio.setGameplayPaused(true);
+    const rows = [...race.players]
+      .sort((left, right) => (left.finishPlace ?? 99) - (right.finishPlace ?? 99))
+      .map((player) => ({
+        place: player.finishPlace === null ? "–" : `#${String(player.finishPlace)}`,
+        detail: `P${String(player.playerIndex + 1)}  ${GameApp.raceTime(player.elapsedSeconds)}`,
+      }));
+    this.ui.showRaceResults(rows);
+  }
+
+  private static raceTime(seconds: number): string {
+    const minutes = Math.floor(seconds / 60);
+    const remainder = seconds - minutes * 60;
+    return `${String(minutes).padStart(2, "0")}:${remainder.toFixed(2).padStart(5, "0")}`;
   }
 
   private togglePause(): void {
@@ -4151,6 +4198,7 @@ export class GameApp {
       return;
     }
     this.state = AppState.Resetting;
+    this.ui.clearRaceResults();
     this.input.setGameplayEnabled(false);
     this.audio.playReset();
     this.audio.stopAllEngineVoices();
@@ -4179,6 +4227,7 @@ export class GameApp {
   }
 
   private returnToMenu(): void {
+    this.ui.clearRaceResults();
     if (this.playtestBlueprint !== undefined) {
       if (this.normalMapPlay) {
         this.input.setGameplayEnabled(false);
@@ -4316,6 +4365,12 @@ export class GameApp {
         if (import.meta.env.DEV) {
           console.warn(`Physics overload: discarded ${result.discardedSeconds.toFixed(3)} s.`);
         }
+      }
+      if (
+        this.raceResultsGeneration !== this.sessionGeneration &&
+        this.worldSession.raceSnapshot().phase === "results"
+      ) {
+        this.showRaceResults();
       }
     }
     this.worldSession?.render(

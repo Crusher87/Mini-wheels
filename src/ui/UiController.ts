@@ -428,6 +428,8 @@ export class UiController {
   private editorTutorialDemoTimeout: number | undefined;
   private mapLibraryItems: readonly MapLibraryItemView[] = Object.freeze([]);
   private mapLibraryTrashVisible = false;
+  private pauseLabelsBeforeResults: { readonly heading: string; readonly reset: string } | null =
+    null;
 
   private readonly onDocumentKeyDown = (event: KeyboardEvent): void => {
     if (this.captureDirection !== undefined) {
@@ -518,6 +520,9 @@ export class UiController {
       void this.handlers?.playSandbox();
     });
     requireElement<HTMLButtonElement>("editor-button").addEventListener("click", () => {
+      void this.handlers?.openMapLibrary();
+    });
+    requireElement<HTMLButtonElement>("play-my-maps-button").addEventListener("click", () => {
       void this.handlers?.openMapLibrary();
     });
     requireElement<HTMLButtonElement>("map-library-back-button").addEventListener("click", () => {
@@ -1099,6 +1104,51 @@ export class UiController {
     requireElement("reset-button").textContent = "RESET RACE";
     requireElement("return-menu-button").textContent = "RETURN TO MAPS";
     requireElement("pause-heading").textContent = "RACE PAUSED";
+  }
+
+  /**
+   * Turns the pause card into the end-of-race results card: finish order and
+   * times, with Play Again and the usual way back.
+   */
+  public showRaceResults(
+    rows: readonly { readonly place: string; readonly detail: string }[],
+  ): void {
+    const list = requireElement("race-results");
+    list.replaceChildren(
+      ...rows.map((row) => {
+        const item = document.createElement("li");
+        const place = document.createElement("strong");
+        place.textContent = row.place;
+        const detail = document.createElement("span");
+        detail.textContent = row.detail;
+        item.append(place, detail);
+        return item;
+      }),
+    );
+    list.hidden = false;
+    const heading = requireElement("pause-heading");
+    const reset = requireElement("reset-button");
+    this.pauseLabelsBeforeResults ??= {
+      heading: heading.textContent ?? "",
+      reset: reset.textContent ?? "",
+    };
+    heading.textContent = "RACE COMPLETE";
+    reset.textContent = "PLAY AGAIN";
+    requireElement("resume-button").hidden = true;
+    this.show("pause");
+    reset.focus();
+  }
+
+  /** Restores the ordinary pause card after a results card. */
+  public clearRaceResults(): void {
+    const labels = this.pauseLabelsBeforeResults;
+    this.pauseLabelsBeforeResults = null;
+    requireElement("race-results").hidden = true;
+    requireElement("resume-button").hidden = false;
+    if (labels !== null) {
+      requireElement("pause-heading").textContent = labels.heading;
+      requireElement("reset-button").textContent = labels.reset;
+    }
   }
 
   /**

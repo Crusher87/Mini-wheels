@@ -158,6 +158,8 @@ interface PortalEndpointRuntime {
   readonly forward: Vector3Like;
   readonly collider: Collider;
   readonly contactsByBody: Map<RigidBodyHandle, Set<ColliderHandle>>;
+  readonly visual: Group;
+  enabled: boolean;
 }
 
 export interface PortalEndpointDebugSnapshot {
@@ -274,7 +276,12 @@ export class PortalSystem {
 
     if (started) {
       const firstContact = this.addEndpointContact(endpoint, bodyHandle, otherColliderHandle);
-      if (firstContact && body !== undefined && this.gate.canEnter(bodyHandle)) {
+      if (
+        firstContact &&
+        endpoint.enabled &&
+        body !== undefined &&
+        this.gate.canEnter(bodyHandle)
+      ) {
         this.teleport(body, endpoint);
       }
     } else {
@@ -304,6 +311,32 @@ export class PortalSystem {
         this.bodyHandleByCollider.delete(colliderHandle);
       }
     }
+  }
+
+  /**
+   * Switches one portal entrance on or off for WHEN → DO links. A switched-off
+   * portal is hidden and does not send cars through. Returns false when unknown.
+   */
+  public setEndpointEnabled(id: PortalEndpointId, enabled: boolean): boolean {
+    const endpoint = this.endpointById.get(id);
+    if (endpoint === undefined) {
+      return false;
+    }
+    endpoint.enabled = enabled;
+    endpoint.visual.visible = enabled;
+    return true;
+  }
+
+  public isEndpointEnabled(id: PortalEndpointId): boolean | null {
+    return this.endpointById.get(id)?.enabled ?? null;
+  }
+
+  /** Restores an entrance's authored on/off state. */
+  public resetEndpoint(id: PortalEndpointId): boolean {
+    const endpoint = this.endpointById.get(id);
+    return (
+      endpoint !== undefined && this.setEndpointEnabled(id, endpoint.definition.enabled !== false)
+    );
   }
 
   public clearTransientState(): void {
@@ -469,7 +502,10 @@ export class PortalSystem {
         forward: portalForwardFromRotation(normalizedRotation),
         collider,
         contactsByBody: new Map(),
+        visual: endpointRoot,
+        enabled: definition.enabled !== false,
       };
+      endpointRoot.visible = runtime.enabled;
       this.endpointById.set(definition.id, runtime);
       this.endpointBySensorCollider.set(collider.handle, runtime);
     }
