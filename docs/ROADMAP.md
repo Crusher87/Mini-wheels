@@ -51,11 +51,17 @@ Rule: every common action is reachable in one or two clicks from where the playe
 - [x] Front end: Play → My Maps reaches saved maps in two clicks; the library lists
       your maps before the starter card.
 - [x] Keyboard and controller still reach everything; existing accessibility tests pass.
-- [ ] Next: world and race settings fold into one-click sections; wall-paint and
-      range tools get toolbar icons when a road is selected; a first-run hint that
-      points at ROAD and TEST NOW.
+- [ ] After the owner's play-test: fold world and race settings into one-click
+      sections if the right panel still feels long (the selection now shows first, and
+      the seven-step tutorial already points new creators at roads and Test Now).
 
 ## Stage 5: split-screen cameras
 
 - [ ] Split the view when players drive apart and merge when they regroup (1–10 players),
       as planned in `LEVEL_EDITOR_GDD.md` phase 6.
+
+Scope note: today one `GroupCameraController` drives one `OrthographicCamera`, and
+`RenderSystem` sends that camera through one post-processing chain (GTAO, FXAA) and one
+DOM marker overlay. Split-screen needs a camera per cluster, scissored viewports through
+post-processing, per-view markers and HUD, and a frame-time check on 2/4/10 views. It is
+the largest remaining piece, so it starts after the owner has play-tested stages 1–4.
